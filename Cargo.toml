@@ -7,4 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3.9", features = ["memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi"] }
+[target.'cfg(target_os = "linux")'.dependencies]
 vmread = "0.1.5"

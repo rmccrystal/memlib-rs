@@ -2,9 +2,14 @@ use std::mem;
 use std::ptr;
 use std::slice;
 
-pub mod kvm_handle;
+mod kvm_handle;
+mod winapi_handle;
 
+// kvm_handles are only available for linux machines running a windows KVM
+#[cfg(target_os = "linux")]
 pub use kvm_handle::KVMProcessHandle;
+#[cfg(target_os = "windows")]
+pub use winapi_handle::WinAPIProcessHandle;
 
 // Define the type we want to use for process addresses in case we want to change it later
 pub type Address = u64;

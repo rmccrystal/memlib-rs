@@ -1,3 +1,6 @@
+// Only compile when targeting linux
+#![cfg(target_os = "linux")]
+
 // Implements a process handle for reading / writing memory externally through a KVM
 // https://github.com/h33p/vmread-rs
 
@@ -98,7 +101,7 @@ impl ProcessHandle for KVMProcessHandle {
         Some(Module {
             base_address: module.info.baseAddress,
             size: module.info.sizeOfModule,
-            name: module_name.clone()
+            name: module_name.clone(),
         })
     }
 }
