@@ -84,7 +84,7 @@ impl dyn ProcessHandle {
         // Read memory at each address
         for i in 0..length {
             // Multiply index by size to get the pointer for the index
-            let address = address + (i * length) as u64;
+            let address = address + (i * size as usize) as u64;
             values.push(self.read_memory(address));
         }
 

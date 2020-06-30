@@ -6,19 +6,19 @@
 use super::*;
 
 use winapi::shared::ntdef::{CHAR, HANDLE, LPSTR, MAKELANGID, NULL, SUBLANG_DEFAULT, TRUE};
-use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
+
 use winapi::um::tlhelp32::{
     CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
 };
 
 use std::ffi::CString;
 use std::mem;
-use winapi::_core::mem::MaybeUninit;
+
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winbase::{
-    FormatMessageA, FORMAT_MESSAGE_ALLOCATE_BUFFER, FORMAT_MESSAGE_FROM_SYSTEM,
+    FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM,
     FORMAT_MESSAGE_IGNORE_INSERTS,
 };
 use winapi::um::winnt::{LANG_NEUTRAL, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE};
@@ -59,7 +59,7 @@ impl WinAPIProcessHandle {
                             let mut message_buf: [i8; 512] = [0; 512];
 
                             // Get the error string by the code
-                            let buf_len = FormatMessageA(
+                            let _buf_len = FormatMessageA(
                                 FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                                 NULL,
                                 error_code,
@@ -101,15 +101,15 @@ impl Drop for WinAPIProcessHandle {
 }
 
 impl ProcessHandle for WinAPIProcessHandle {
-    fn read_bytes(&self, address: u64, size: usize) -> Result<Box<[u8]>> {
+    fn read_bytes(&self, _address: u64, _size: usize) -> Result<Box<[u8]>> {
         unimplemented!()
     }
 
-    fn write_bytes(&self, address: u64, bytes: &[u8]) -> Result<()> {
+    fn write_bytes(&self, _address: u64, _bytes: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
-    fn get_module(&self, module_name: &String) -> Option<Module> {
+    fn get_module(&self, _module_name: &String) -> Option<Module> {
         unimplemented!()
     }
 }
