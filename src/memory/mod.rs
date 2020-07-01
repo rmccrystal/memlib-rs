@@ -36,6 +36,13 @@ pub trait ProcessHandle {
     // If the module is found, it will return Some with the Module object,
     // Otherwise, it will return None
     fn get_module(&self, module_name: &String) -> Option<Module>;
+
+    // Returns a struct of process info useful in some cheats
+    fn get_process_info(&self) -> ProcessInfo;
+}
+
+pub struct ProcessInfo {
+    pub peb_base_address: u64 // The base address of the PEB
 }
 
 // Implements generic functions for a process handle

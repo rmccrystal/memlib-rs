@@ -157,6 +157,10 @@ impl ProcessHandle for WinAPIProcessHandle {
 
         Some(Module{name: module_name.clone(), size: module.modBaseSize as u64, base_address: module.modBaseAddr as u64})
     }
+
+    fn get_process_info(&self) -> ProcessInfo {
+        unimplemented!()
+    }
 }
 
 // Converts a Windows error code to its corresponding message.

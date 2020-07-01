@@ -31,7 +31,7 @@ impl KVMProcessHandle {
                 "Creating a KVM process handle failed with code {}: {} (try running as root)",
                 code, message
             )
-            .into());
+                .into());
         }
 
         // Get the contents if it didn't fail
@@ -106,5 +106,12 @@ impl ProcessHandle for KVMProcessHandle {
             size: module.info.sizeOfModule,
             name: module_name.clone(),
         })
+    }
+
+    fn get_process_info(&self) -> ProcessInfo {
+        let process = self.process.clone();
+        let peb = process.get_peb(self.c_context);
+        let peb_base_address = peb.ImageBaseAddress;
+        ProcessInfo { peb_base_address }
     }
 }
