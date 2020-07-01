@@ -17,7 +17,8 @@ pub struct KVMProcessHandle {
 impl KVMProcessHandle {
     // Attach to a running process with `process_name`
     // If successful, returns a boxed ProcessHandle trait
-    pub fn attach(process_name: &String) -> Result<Box<dyn ProcessHandle>> {
+    pub fn attach(process_name: impl Into<String>) -> Result<Box<dyn ProcessHandle>> {
+        let process_name = process_name.into();
         // Creating context prints some random shit so put lines around it
         println!("--------------------------------------");
         // Create the KVM context (handle to KVM)
@@ -57,7 +58,7 @@ impl ProcessHandle for KVMProcessHandle {
         let mut buff: Box<[u8]> = (vec![0u8; size]).into_boxed_slice();
 
         // Call the vmread api directly
-        let result = unsafe {
+        let _result = unsafe {
             vmread::sys::VMemRead(
                 &self.c_context.process,
                 self.process.proc.dirBase,
@@ -67,9 +68,12 @@ impl ProcessHandle for KVMProcessHandle {
             )
         };
 
+        // I'm actually not sure if this function returns a status.
+        /*
         if result < 0 {
             return Err(format!("Reading memory from process failed with code {}", result).into());
         }
+         */
 
         Ok(buff.into())
     }
@@ -83,7 +87,6 @@ impl ProcessHandle for KVMProcessHandle {
     fn get_module(&self, module_name: &String) -> Option<Module> {
         // Create clones of self so this function can be immutable
         let mut process_list = self.process.clone();
-        let mut c_ctx = self.c_context.clone();
 
         let module = process_list
             .refresh_modules(self.c_context)

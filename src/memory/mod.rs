@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -93,22 +95,28 @@ impl dyn ProcessHandle {
     }
 
     // Dumps the contents of a module by `module_name` to a byte vec.
-    // If the module is not found, it will return None,
+    // If the module is not found or there is an error reading memory, it will return an Error.
     // otherwise, it will return the dump
-    pub fn dump_module(&self, module_name: &String) -> Option<Box<[u8]>> {
-        let module = self.get_module(module_name)?;
+    pub fn dump_module(&self, module_name: impl Into<String>) -> Result<Box<[u8]>> {
+        let module_name = module_name.into();
+        let module = self.get_module(&module_name).ok_or_else(|| format!("Could not find module {}", module_name))?;
         let mut buffer: Vec<u8> = Vec::new();
 
         // The address the module ends
         let module_end_address = module.base_address + module.size;
 
         // The amount of bytes to be read at a time
-        let chunk_size: usize = 1024;
+        let chunk_size: usize = 4096;
 
         // The current memory location we are reading
         let mut current_offset: Address = module.base_address;
 
         loop {
+            // The current offset should never be greater than the module_end_address
+            if current_offset > module_end_address {
+                dbg!(current_offset, module_end_address);
+                panic!("dump_module attempted to read invalid memory")
+            }
             if current_offset == module_end_address {
                 break;
             }
@@ -122,22 +130,22 @@ impl dyn ProcessHandle {
                 }
             };
 
-            let memory = self.read_bytes(current_offset, read_size);
+            let memory = self.read_bytes(current_offset, read_size)?;
 
             // Append the slice of memory to the buffer
-            buffer.extend_from_slice(&memory.unwrap());
+            buffer.extend_from_slice(&memory);
 
-            current_offset += chunk_size as u64;
-            dbg!(current_offset);
+            current_offset += read_size as u64;
         }
 
-        Some(buffer.into_boxed_slice())
+        Ok(buffer.into_boxed_slice())
     }
 }
 
 // Defines information about a module
 pub struct Module {
     pub base_address: Address,
-    pub size: u64, // Size in bytes of the module
+    pub size: u64,
+    // Size in bytes of the module
     pub name: String,
 }
