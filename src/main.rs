@@ -5,7 +5,8 @@ use std::error::Error;
 mod memory;
 
 fn main() {
-    dump_process("modernwarfare.exe").unwrap();
+    // dump_process("modernwarfare.exe").unwrap();
+
 }
 
 fn dump_process(process_name: impl Into<String>) -> Result<(), Box<dyn Error>>{

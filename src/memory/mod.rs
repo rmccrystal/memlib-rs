@@ -3,6 +3,7 @@
 use std::mem;
 use std::ptr;
 use std::slice;
+use std::marker::PhantomData;
 
 mod kvm_handle;
 mod winapi_handle;
@@ -148,4 +149,30 @@ pub struct Module {
     pub size: u64,
     // Size in bytes of the module
     pub name: String,
+}
+
+// Represents a pointer to a type in external process memory
+// This has the same memory layout as an `Address`, so this can be
+// used in structs to represent pointers to a value
+#[repr(C)]
+pub struct Pointer<T> {
+    pub address: Address,
+    _marker: PhantomData<T>     // Store the type value (this doens't change memory layout)
+}
+
+impl<T> Pointer<T> {
+    // Creates a new pointer at address `address` and using process handle `handle`
+    pub fn new<U>(address: Address) -> Pointer<U> {
+        Pointer{address, _marker: PhantomData}
+    }
+
+    // Reads the value of the pointer
+    fn read(&self, handle: Box<dyn ProcessHandle>) -> T {
+        handle.read_memory(self.address)
+    }
+
+    // Writes value to address
+    fn write(&self, value: T, handle: Box<dyn ProcessHandle>) {
+        handle.write_memory(self.address, value)
+    }
 }
