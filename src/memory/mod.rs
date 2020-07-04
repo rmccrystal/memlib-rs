@@ -8,6 +8,8 @@ use std::marker::PhantomData;
 mod kvm_handle;
 mod winapi_handle;
 
+mod scan;
+
 // kvm_handles are only available for linux machines running a windows KVM
 #[cfg(target_os = "linux")]
 pub use kvm_handle::KVMProcessHandle;
@@ -20,6 +22,15 @@ pub type Address = u64;
 // There are going to be different error types throughout
 // this package, so define Result to use a boxed Error trait
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+
+// Defines information about a module
+pub struct Module {
+    pub base_address: Address,
+    pub size: u64,
+    // Size in bytes of the module
+    pub name: String,
+}
 
 // An abstract interface for reading and writing memory to a process
 pub trait ProcessHandle {
@@ -148,14 +159,26 @@ impl dyn ProcessHandle {
 
         Ok(buffer.into_boxed_slice())
     }
-}
 
-// Defines information about a module
-pub struct Module {
-    pub base_address: Address,
-    pub size: u64,
-    // Size in bytes of the module
-    pub name: String,
+    // Cheat engine like memory scanning
+    // Creates a MemoryScan object containing addresses within address_range
+    // If fast_scan is set to true, it will only search values with an address dividable by 4 (recommended)
+    pub fn create_scan<T: PartialEq>(&self, address_range: (Address, Address), fast_scan: bool) -> scan::MemoryScan<T> {
+        let align_bytes = {
+            if fast_scan { 4 } else { 1 }
+        };
+
+        let mut addresses = Vec::new();
+
+        // Push valid addresses in the address_range
+        for address in address_range.0 .. address_range.1 {
+            if address % align_bytes == 0 {
+                addresses.push(address);
+            }
+        }
+
+        scan::MemoryScan::new(addresses)
+    }
 }
 
 // Represents a pointer to a type in external process memory
@@ -164,22 +187,22 @@ pub struct Module {
 #[repr(C)]
 pub struct Pointer<T> {
     pub address: Address,
-    _marker: PhantomData<T>     // Store the type value (this doens't change memory layout)
+    _marker: PhantomData<T>     // Store the type value (this doesn't change memory layout)
 }
 
 impl<T> Pointer<T> {
     // Creates a new pointer at address `address` and using process handle `handle`
-    pub fn new<U>(address: Address) -> Pointer<U> {
+    pub fn new(address: Address) -> Pointer<T> {
         Pointer{address, _marker: PhantomData}
     }
 
     // Reads the value of the pointer
-    fn read(&self, handle: Box<dyn ProcessHandle>) -> T {
+    fn read(&self, handle: &Box<dyn ProcessHandle>) -> T {
         handle.read_memory(self.address)
     }
 
     // Writes value to address
-    fn write(&self, value: T, handle: Box<dyn ProcessHandle>) {
+    fn write(&self, value: T, handle: &Box<dyn ProcessHandle>) {
         handle.write_memory(self.address, value)
     }
 }

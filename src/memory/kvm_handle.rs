@@ -111,7 +111,8 @@ impl ProcessHandle for KVMProcessHandle {
     fn get_process_info(&self) -> ProcessInfo {
         let process = self.process.clone();
         let peb = process.get_peb(self.c_context);
-        let peb_base_address = peb.ImageBaseAddress;
+        // let peb_base_address = peb.ImageBaseAddress;
+        let peb_base_address = peb.Ldr;
         ProcessInfo { peb_base_address }
     }
 }
