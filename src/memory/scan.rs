@@ -21,4 +21,3 @@ impl<T> MemoryScan<T> where T: PartialEq + Sized {
         });
     }
 }
-
