@@ -27,14 +27,16 @@ use winapi::um::winbase::{
 use winapi::um::winnt::{LANG_NEUTRAL, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE};
 
 pub struct WinAPIProcessHandle {
-    // The windows handle to the process
     process_handle: HANDLE,
     pid: u32,
+    process_name: String,
 }
 
 impl WinAPIProcessHandle {
-    pub fn attach(_process_name: impl ToString) -> Result<Box<dyn ProcessHandle>> {
-        let process_name = _process_name.to_string();
+    /// Attaches to a process using OpenProcess and implements the ProcessHandle
+    /// trait using ReadProcessMemory and WriteProcessMemory
+    pub fn attach(process_name: impl ToString) -> Result<Box<dyn ProcessHandle>> {
+        let process_name = process_name.to_string();
         // https://stackoverflow.com/a/865201/11639049
         // Create an empty PROCESSENTRY32 struct
         let mut entry: PROCESSENTRY32 = unsafe { mem::zeroed() };
@@ -76,6 +78,7 @@ impl WinAPIProcessHandle {
                         return Ok(Box::new(WinAPIProcessHandle {
                             process_handle,
                             pid: entry.th32ProcessID,
+                            process_name,
                         }));
                     }
                 }
@@ -190,12 +193,15 @@ impl ProcessHandle for WinAPIProcessHandle {
     }
 
     fn get_process_info(&self) -> ProcessInfo {
-        unimplemented!()
+        ProcessInfo {
+            process_name: self.process_name.clone(),
+            peb_base_address: 0, // Not implemented
+        }
     }
 }
 
-// Converts a Windows error code to its corresponding message.
-// If there is no message associated with the code, this will return None
+/// Converts a Windows error code to its corresponding message.
+/// If there is no message associated with the code, this will return None
 fn error_code_to_message(code: u32) -> Option<String> {
     let mut message_buf: [i8; 512] = [0; 512];
 
@@ -222,6 +228,6 @@ fn error_code_to_message(code: u32) -> Option<String> {
             .unwrap()
             .replace("\r\n", ""); // Remove newline
 
-        return Some(message);
+        Some(message)
     }
 }

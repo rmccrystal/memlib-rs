@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
+use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
 use std::slice;
-use std::marker::PhantomData;
 
 mod kvm_handle;
 mod winapi_handle;
 
-mod scan;
+pub mod scan;
 
 // kvm_handles are only available for linux machines running a windows KVM
 #[cfg(target_os = "linux")]
@@ -17,56 +17,68 @@ pub use kvm_handle::KVMProcessHandle;
 pub use winapi_handle::WinAPIProcessHandle;
 
 // Define the type we want to use for process addresses in case we want to change it later
+/// A type alias for process addresses
 pub type Address = u64;
 
 // There are going to be different error types throughout
 // this package, so define Result to use a boxed Error trait
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-
-// Defines information about a module
+/// Defines information about a module
 pub struct Module {
+    /// The image base address
     pub base_address: Address,
+    /// Size in bytes of the module
     pub size: u64,
-    // Size in bytes of the module
+    /// The name of the module
     pub name: String,
 }
 
-// An abstract interface for reading and writing memory to a process
+impl Module {
+    /// Returns the range of memory for the entire module
+    pub fn get_memory_range(&self) -> (Address, Address) {
+        (self.base_address, self.base_address + self.size)
+    }
+}
+
+/// An abstract interface for reading and writing memory to a process
 pub trait ProcessHandle {
-    // Reads `size` bytes from a at the specified `address`.
-    // If it is successful, it will return a boxed byte slice
-    // Otherwise, it will return the error.
+    /// Reads `size` bytes from a at the specified `address`.
+    /// If it is successful, it will return a boxed byte slice
+    /// Otherwise, it will return the error.
     fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>>;
 
-    // Write a slice of bytes to a process at the address `address`
-    // Returns an error if unsuccessful
+    /// Write a slice of bytes to a process at the address `address`
+    /// Returns an error if unsuccessful
     fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()>;
 
-    // Gets information about a module in the form of a Module struct by name
-    // If the module is found, it will return Some with the Module object,
-    // Otherwise, it will return None
+    /// Gets information about a module in the form of a Module struct by name
+    /// If the module is found, it will return Some with the Module object,
+    /// Otherwise, it will return None
     fn get_module(&self, module_name: &String) -> Option<Module>;
 
-    // Returns a struct of process info useful in some cheats
+    /// Returns a struct of process info useful in some cheats
     fn get_process_info(&self) -> ProcessInfo;
 }
 
 pub struct ProcessInfo {
-    pub peb_base_address: u64 // The base address of the PEB
+    /// The base address of the PEB. Needed in some games
+    pub peb_base_address: u64,
+    /// The name of the process
+    pub process_name: String,
 }
 
-// Implements generic functions for a process handle
-// We do this separately because we aren't allowed to
-// have generic functions on traits which we use as objects,
-// so we can implement the generic read and write functions
-// on top of the trait so it stays object safe
+/// Implements generic functions for a process handle
+/// We do this separately because we aren't allowed to
+/// have generic functions on traits which we use as objects,
+/// so we can implement the generic read and write functions
+/// on top of the trait so it stays object safe
 
 // Note: The `impl dyn` syntax is similar to adding code inside
 // the impl block. For some reason, this was really obscure.
 impl dyn ProcessHandle {
-    // Reads memory of type T from a process. If it is successful,
-    // it will return the bytes read as type T. Otherwise, it will panic.
+    /// Reads memory of type T from a process. If it is successful,
+    /// it will return the bytes read as type T. Otherwise, it will panic.
     pub fn read_memory<T>(&self, address: Address) -> T {
         // Get size of the type
         let size = mem::size_of::<T>();
@@ -82,8 +94,8 @@ impl dyn ProcessHandle {
         value
     }
 
-    // Writes memory of type T to a process. If it is successful,
-    // the function will return, otherwise the function will panic
+    /// Writes memory of type T to a process. If it is successful,
+    /// the function will return, otherwise the function will panic
     pub fn write_memory<T>(&self, address: Address, value: T) {
         let size = mem::size_of::<T>();
         // Create a byte buffer from the type
@@ -94,9 +106,9 @@ impl dyn ProcessHandle {
             .expect("Failed to write memory to process")
     }
 
-    // Reads an array of length `length` and type T from the process.
-    // If successful, it will return the read array as a Vec<T>,
-    // Otherwise, the function will panic
+    /// Reads an array of length `length` and type T from the process.
+    /// If successful, it will return the read array as a Vec<T>,
+    /// Otherwise, the function will panic
     pub fn read_array<T>(&self, address: Address, length: usize) -> Vec<T> {
         let size = std::mem::size_of::<T>() as u32;
         // Creates an array lf values for our result
@@ -113,12 +125,14 @@ impl dyn ProcessHandle {
         values
     }
 
-    // Dumps the contents of a module by `module_name` to a byte vec.
-    // If the module is not found or there is an error reading memory, it will return an Error.
-    // otherwise, it will return the dump
+    /// Dumps the contents of a module by `module_name` to a byte vec.
+    /// If the module is not found or there is an error reading memory, it will return an Error.
+    /// otherwise, it will return the dump
     pub fn dump_module(&self, module_name: impl Into<String>) -> Result<Box<[u8]>> {
         let module_name = module_name.into();
-        let module = self.get_module(&module_name).ok_or_else(|| format!("Could not find module {}", module_name))?;
+        let module = self
+            .get_module(&module_name)
+            .ok_or_else(|| format!("Could not find module {}", module_name))?;
         let mut buffer: Vec<u8> = Vec::new();
 
         // The address the module ends
@@ -159,49 +173,32 @@ impl dyn ProcessHandle {
 
         Ok(buffer.into_boxed_slice())
     }
-
-    // Cheat engine like memory scanning
-    // Creates a MemoryScan object containing addresses within address_range
-    // If fast_scan is set to true, it will only search values with an address dividable by 4 (recommended)
-    pub fn create_scan<T: PartialEq>(&self, address_range: (Address, Address), fast_scan: bool) -> scan::MemoryScan<T> {
-        let align_bytes = {
-            if fast_scan { 4 } else { 1 }
-        };
-
-        let mut addresses = Vec::new();
-
-        // Push valid addresses in the address_range
-        for address in address_range.0 .. address_range.1 {
-            if address % align_bytes == 0 {
-                addresses.push(address);
-            }
-        }
-
-        scan::MemoryScan::new(addresses)
-    }
 }
 
-// Represents a pointer to a type in external process memory
-// This has the same memory layout as an `Address`, so this can be
-// used in structs to represent pointers to a value
+/// Represents a pointer to a type in external process memory
+/// This has the same memory layout as an `Address`, so this can be
+/// used in structs to represent pointers to a value
 #[repr(C)]
 pub struct Pointer<T> {
     pub address: Address,
-    _marker: PhantomData<T>     // Store the type value (this doesn't change memory layout)
+    _marker: PhantomData<T>, // Store the type value (this doesn't change memory layout)
 }
 
 impl<T> Pointer<T> {
-    // Creates a new pointer at address `address` and using process handle `handle`
+    /// Creates a new pointer at address `address` and using process handle `handle`
     pub fn new(address: Address) -> Pointer<T> {
-        Pointer{address, _marker: PhantomData}
+        Pointer {
+            address,
+            _marker: PhantomData,
+        }
     }
 
-    // Reads the value of the pointer
+    /// Reads the value of the pointer
     fn read(&self, handle: &Box<dyn ProcessHandle>) -> T {
         handle.read_memory(self.address)
     }
 
-    // Writes value to address
+    /// Writes value to address
     fn write(&self, value: T, handle: &Box<dyn ProcessHandle>) {
         handle.write_memory(self.address, value)
     }
