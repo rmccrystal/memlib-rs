@@ -1,5 +1,5 @@
 [package]
-name = "game-hacking-rs"
+name = "memlib-rs"
 version = "0.1.0"
 authors = ["Ryan McCrystal <rrmccrystal@gmail.com>"]
 edition = "2018"
