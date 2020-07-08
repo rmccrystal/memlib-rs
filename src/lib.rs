@@ -1,4 +1,5 @@
 pub mod memory;
+pub mod util;
 
 #[cfg(test)]
 mod tests {
