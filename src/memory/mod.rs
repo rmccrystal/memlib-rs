@@ -16,6 +16,9 @@ pub use kvm_handle::KVMProcessHandle;
 #[cfg(target_os = "windows")]
 pub use winapi_handle::WinAPIProcessHandle;
 
+// Export memory scanning lib
+pub use scan::*;
+
 // Define the type we want to use for process addresses in case we want to change it later
 /// A type alias for process addresses
 pub type Address = u64;
@@ -24,25 +27,10 @@ pub type Address = u64;
 // this package, so define Result to use a boxed Error trait
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-/// Defines information about a module
-pub struct Module {
-    /// The image base address
-    pub base_address: Address,
-    /// Size in bytes of the module
-    pub size: u64,
-    /// The name of the module
-    pub name: String,
-}
-
-impl Module {
-    /// Returns the range of memory for the entire module
-    pub fn get_memory_range(&self) -> (Address, Address) {
-        (self.base_address, self.base_address + self.size)
-    }
-}
-
 /// An abstract interface for reading and writing memory to a process
-pub trait ProcessHandle {
+/// allowing cross platform interaction with a process.
+/// This is what the ProcessHandle is built off of
+pub trait ProcessHandleInterface {
     /// Reads `size` bytes from a at the specified `address`.
     /// If it is successful, it will return a boxed byte slice
     /// Otherwise, it will return the error.
@@ -68,21 +56,50 @@ pub struct ProcessInfo {
     pub process_name: String,
 }
 
-/// Implements generic functions for a process handle
-/// We do this separately because we aren't allowed to
-/// have generic functions on traits which we use as objects,
-/// so we can implement the generic read and write functions
-/// on top of the trait so it stays object safe
+/// A handle to a process allowing Reading and writing memory
+pub struct Handle {
+    interface: Box<dyn ProcessHandleInterface>,
+}
 
-// Note: The `impl dyn` syntax is similar to adding code inside
-// the impl block. For some reason, this was really obscure.
-impl dyn ProcessHandle {
+impl Handle {
+    /// Creates a new Handle using the intrinsic process handle interface and the process name
+    pub fn from_interface(interface: Box<dyn ProcessHandleInterface>) -> Handle {
+        Handle { interface }
+    }
+
+    #[cfg(target_os = "linux")]
+    /// Automatically finds the most secure method of reading / writing
+    /// memory and creates a process handle using it
+    ///
+    /// For example, if the program was running on linux
+    /// with a KVM, a KVm handle would be created
+    pub fn new<'a>(process_name: impl ToString) -> Result<Handle<'a>> {
+        let process_name = process_name.to_string();
+        Ok(Self::from_interface(KVMProcessHandle::attach(
+            &process_name,
+        )?))
+    }
+
+    #[cfg(target_os = "windows")]
+    /// Automatically finds the most secure method of reading / writing
+    /// memory and creates a process handle using it
+    ///
+    /// For example, if the program was running on linux
+    /// with a KVM, a KVm handle would be created
+    pub fn new(process_name: impl ToString) -> Result<Handle> {
+        let process_name = process_name.to_string();
+        Ok(Self::from_interface(WinAPIProcessHandle::attach(
+            &process_name,
+        )?))
+    }
+
     /// Reads memory of type T from a process. If it is successful,
     /// it will return the bytes read as type T. Otherwise, it will panic.
     pub fn read_memory<T>(&self, address: Address) -> T {
         // Get size of the type
         let size = mem::size_of::<T>();
         let bytes = self
+            .interface
             .read_bytes(address, size)
             .expect("Error reading bytes from process");
         // Convert the raw bytes into the type we need to return
@@ -131,6 +148,7 @@ impl dyn ProcessHandle {
     pub fn dump_module(&self, module_name: impl Into<String>) -> Result<Box<[u8]>> {
         let module_name = module_name.into();
         let module = self
+            .interface
             .get_module(&module_name)
             .ok_or_else(|| format!("Could not find module {}", module_name))?;
         let mut buffer: Vec<u8> = Vec::new();
@@ -173,6 +191,52 @@ impl dyn ProcessHandle {
 
         Ok(buffer.into_boxed_slice())
     }
+
+    // -------------------------------------------------------- //
+    // Implement the intrinsic `ProcessHandleInterface` methods //
+    // -------------------------------------------------------- //
+
+    /// Reads `size` bytes from a at the specified `address`.
+    /// If it is successful, it will return a boxed byte slice
+    /// Otherwise, it will return the error.
+    pub fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
+        self.interface.read_bytes(address, size)
+    }
+
+    /// Write a slice of bytes to a process at the address `address`
+    /// Returns an error if unsuccessful
+    pub fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
+        self.interface.write_bytes(address, bytes)
+    }
+
+    /// Gets information about a module in the form of a Module struct by name
+    /// If the module is found, it will return Some with the Module object,
+    /// Otherwise, it will return None
+    pub fn get_module(&self, module_name: &String) -> Option<Module> {
+        self.interface.get_module(module_name)
+    }
+
+    /// Returns a struct of process info useful in some cheats
+    pub fn get_process_info(&self) -> ProcessInfo {
+        self.interface.get_process_info()
+    }
+}
+
+/// Defines information about a module
+pub struct Module {
+    /// The image base address
+    pub base_address: Address,
+    /// Size in bytes of the module
+    pub size: u64,
+    /// The name of the module
+    pub name: String,
+}
+
+impl Module {
+    /// Returns the range of memory for the entire module
+    pub fn get_memory_range(&self) -> (Address, Address) {
+        (self.base_address, self.base_address + self.size)
+    }
 }
 
 /// Represents a pointer to a type in external process memory
@@ -186,7 +250,7 @@ pub struct Pointer<T> {
 
 impl<T> Pointer<T> {
     /// Creates a new pointer at address `address` and using process handle `handle`
-    pub fn new(address: Address) -> Pointer<T> {
+    pub fn new<U>(address: Address) -> Pointer<T> {
         Pointer {
             address,
             _marker: PhantomData,
@@ -194,12 +258,12 @@ impl<T> Pointer<T> {
     }
 
     /// Reads the value of the pointer
-    fn read(&self, handle: &Box<dyn ProcessHandle>) -> T {
+    pub fn read(&self, handle: &crate::memory::Handle) -> T {
         handle.read_memory(self.address)
     }
 
     /// Writes value to address
-    fn write(&self, value: T, handle: &Box<dyn ProcessHandle>) {
+    pub fn write(&self, value: T, handle: &Handle) {
         handle.write_memory(self.address, value)
     }
 }

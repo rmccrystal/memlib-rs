@@ -5,24 +5,24 @@
 
 use super::*;
 
-use winapi::shared::ntdef::{CHAR, HANDLE, LPSTR, MAKELANGID, NULL, SUBLANG_DEFAULT, TRUE};
+use winapi::shared::ntdef::{HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
 
 use winapi::um::tlhelp32::{
     CreateToolhelp32Snapshot, Module32First, Module32Next, Process32First, Process32Next,
     MODULEENTRY32, PROCESSENTRY32, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS,
 };
 
+use log::*;
 use std::ffi::CString;
 use std::mem;
 
-use winapi::ctypes::c_void;
-use winapi::shared::minwindef::{LPCVOID, LPVOID};
+use std::string::FromUtf8Error;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
 use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winbase::{
-    AddAtomA, FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
+    FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 };
 use winapi::um::winnt::{LANG_NEUTRAL, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE};
 
@@ -35,8 +35,9 @@ pub struct WinAPIProcessHandle {
 impl WinAPIProcessHandle {
     /// Attaches to a process using OpenProcess and implements the ProcessHandle
     /// trait using ReadProcessMemory and WriteProcessMemory
-    pub fn attach(process_name: impl ToString) -> Result<Box<dyn ProcessHandle>> {
+    pub fn attach<'a>(process_name: impl ToString) -> Result<Box<dyn ProcessHandleInterface + 'a>> {
         let process_name = process_name.to_string();
+
         // https://stackoverflow.com/a/865201/11639049
         // Create an empty PROCESSENTRY32 struct
         let mut entry: PROCESSENTRY32 = unsafe { mem::zeroed() };
@@ -50,8 +51,8 @@ impl WinAPIProcessHandle {
             // TODO: This doesn't have error handling for Process32First/Next. use GetLastError
             if Process32First(snapshot, &mut entry) == 1 {
                 while Process32Next(snapshot, &mut entry) == 1 {
-                    let current_process_name =
-                        CString::from_raw(entry.szExeFile.as_mut_ptr()).into_string()?;
+                    // Construct the process name from the bytes in the szExeFile array
+                    let current_process_name = c_char_array_to_string(entry.szExeFile.to_vec());
 
                     // Compare the szExeFile element to the process name in lowercase
                     if current_process_name.to_lowercase() == process_name.to_lowercase() {
@@ -75,6 +76,8 @@ impl WinAPIProcessHandle {
                             .into());
                         }
 
+                        debug!("Attached to process {}", process_name);
+
                         return Ok(Box::new(WinAPIProcessHandle {
                             process_handle,
                             pid: entry.th32ProcessID,
@@ -93,12 +96,13 @@ impl WinAPIProcessHandle {
 impl Drop for WinAPIProcessHandle {
     fn drop(&mut self) {
         if self.process_handle != NULL {
+            debug!("Closed handle to {}", self.process_name);
             unsafe { CloseHandle(self.process_handle) };
         }
     }
 }
 
-impl ProcessHandle for WinAPIProcessHandle {
+impl ProcessHandleInterface for WinAPIProcessHandle {
     fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
         let mut buff: Box<[u8]> = (vec![0u8; size]).into_boxed_slice();
         let mut bytes_read: usize = 0;
@@ -177,13 +181,11 @@ impl ProcessHandle for WinAPIProcessHandle {
             }
         };
 
-        let module = module_list.into_iter().find(|module| unsafe {
-            CString::from_raw(module.szModule.clone().as_mut_ptr())
-                .into_string()
-                .unwrap()
-                .to_lowercase()
-                == module_name.to_lowercase()
+        let module = module_list.into_iter().find(|module| {
+            c_char_array_to_string(module.szModule.to_vec()) == module_name.to_lowercase()
         })?;
+
+        debug!("Found module {}", module_name);
 
         Some(Module {
             name: module_name.clone(),
@@ -230,4 +232,16 @@ fn error_code_to_message(code: u32) -> Option<String> {
 
         Some(message)
     }
+}
+
+// Converts an i8 vec found in WINAPI structs to a string
+fn c_char_array_to_string(buff: Vec<i8>) -> String {
+    let mut new_string: Vec<u8> = Vec::new();
+    for c in buff {
+        if c == 0i8 {
+            break;
+        }
+        new_string.push(c as _);
+    }
+    String::from_utf8(new_string).unwrap()
 }

@@ -17,7 +17,9 @@ pub struct KVMProcessHandle {
 impl KVMProcessHandle {
     // Attach to a running process with `process_name`
     // If successful, returns a boxed ProcessHandle trait
-    pub fn attach(process_name: impl Into<String>) -> Result<Box<dyn ProcessHandle>> {
+    pub fn attach<'a>(
+        process_name: impl Into<String>,
+    ) -> Result<Box<dyn ProcessHandleInterface + 'a>> {
         let process_name = process_name.into();
         // Creating context prints some random shit so put lines around it
         println!("--------------------------------------");
@@ -31,7 +33,7 @@ impl KVMProcessHandle {
                 "Creating a KVM process handle failed with code {}: {} (try running as root)",
                 code, message
             )
-                .into());
+            .into());
         }
 
         // Get the contents if it didn't fail
@@ -51,7 +53,7 @@ impl KVMProcessHandle {
     }
 }
 
-impl ProcessHandle for KVMProcessHandle {
+impl ProcessHandleInterface for KVMProcessHandle {
     fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
         // Create a byte buffer by creating a vec of size and turning it into a slice
         // We do this so we can let the read function write to this buffer

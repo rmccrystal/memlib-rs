@@ -1,5 +1,5 @@
 [package]
-name = "memlib-rs"
+name = "memlib"
 version = "0.1.0"
 authors = ["Ryan McCrystal <rrmccrystal@gmail.com>"]
 edition = "2018"
@@ -7,6 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+log = "0.4.8"
+simplelog = "0.8.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3.9", features = ["memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi"] }
 [target.'cfg(target_os = "linux")'.dependencies]

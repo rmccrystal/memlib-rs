@@ -1,18 +1,16 @@
-use super::*;
+use super::{Address, Handle, Pointer};
 
+use log::*;
 use std::cmp::PartialEq;
+use winapi::_core::marker::PhantomData;
+use winapi::shared::winerror::PEER_E_EVENT_HANDLE_NOT_FOUND;
 
 pub struct MemoryScan<T> {
-    pub matches: Vec<Pointer<T>>,
+    pub matches: Vec<Address>,
+    _marker: std::marker::PhantomData<T>,
 }
 
 /// Implements cheat engine like memory scanning
-/// Example
-/// ```
-///
-/// let memory_scan: MemoryScan<u32> = MemoryScan::new();
-///
-/// ```
 impl<T> MemoryScan<T>
 where
     T: PartialEq + Sized,
@@ -29,10 +27,11 @@ where
             }
         };
 
+        let type_size = std::mem::size_of::<T>() as u64;
         let mut addresses = Vec::new();
 
         // Push valid addresses in the address_range
-        for address in address_range.0..address_range.1 {
+        for address in address_range.0..(address_range.1 - type_size) {
             if address % align_bytes == 0 {
                 addresses.push(address);
             }
@@ -43,13 +42,17 @@ where
 
     /// Creates a MemoryScan from a list of addresses
     pub fn from_addresses(addresses: Vec<Address>) -> MemoryScan<T> {
+        debug!("Created a memory scan with {} addresses", addresses.len());
         MemoryScan {
-            matches: addresses.iter().map(|&addr| Pointer::new(addr)).collect(),
+            matches: addresses,
+            _marker: PhantomData,
         }
     }
 
     /// Filters the matches with values which match the new scan
-    pub fn scan(&mut self, handle: &Box<dyn ProcessHandle>, value: T) {
-        self.matches.retain(|ptr| ptr.read(&handle) == value);
+    pub fn scan(&mut self, handle: &Handle, value: T) {
+        debug!("Scanning {} addresses", self.matches.len());
+        self.matches
+            .retain(|&address| handle.read_memory::<T>(address) == value);
     }
 }
