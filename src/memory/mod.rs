@@ -73,7 +73,7 @@ impl Handle {
     ///
     /// For example, if the program was running on linux
     /// with a KVM, a KVm handle would be created
-    pub fn new<'a>(process_name: impl ToString) -> Result<Handle<'a>> {
+    pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
         Ok(Self::from_interface(KVMProcessHandle::attach(
             &process_name,

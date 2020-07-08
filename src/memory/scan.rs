@@ -1,13 +1,12 @@
-use super::{Address, Handle, Pointer};
+use super::{Address, Handle};
 
 use log::*;
 use std::cmp::PartialEq;
-use winapi::_core::marker::PhantomData;
-use winapi::shared::winerror::PEER_E_EVENT_HANDLE_NOT_FOUND;
+use std::marker::PhantomData;
 
 pub struct MemoryScan<T> {
     pub matches: Vec<Address>,
-    _marker: std::marker::PhantomData<T>,
+    _marker: PhantomData<T>,
 }
 
 /// Implements cheat engine like memory scanning
