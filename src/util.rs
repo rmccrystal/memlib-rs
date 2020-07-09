@@ -1,5 +1,6 @@
-use std::time::{Instant, Duration};
+use pretty_hex::*;
 use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 /// A timer which runs a loop at a consistent rate
 /// For example, in a game hack, we might want to run the main
@@ -41,4 +42,8 @@ impl LoopTimer {
         // Update last tick
         self.last_tick = Instant::now();
     }
+}
+
+pub fn to_hex_string(buf: &[u8]) -> String {
+    buf.hex_dump().to_string()
 }
