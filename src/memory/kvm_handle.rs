@@ -12,7 +12,7 @@ pub struct KVMProcessHandle {
     // some structs used by the vmread library
     process: vmread::WinProcess,
     c_context: vmread::sys::WinCtx,
-    process_name: String
+    process_name: String,
 }
 
 impl KVMProcessHandle {
@@ -50,7 +50,11 @@ impl KVMProcessHandle {
             .clone();
 
         // Return the newly created handle
-        Ok(Box::new(KVMProcessHandle { c_context, process, process_name }))
+        Ok(Box::new(KVMProcessHandle {
+            c_context,
+            process,
+            process_name,
+        }))
     }
 }
 
@@ -116,6 +120,9 @@ impl ProcessHandleInterface for KVMProcessHandle {
         let peb = process.get_peb(self.c_context);
         // let peb_base_address = peb.ImageBaseAddress;
         let peb_base_address = peb.Ldr;
-        ProcessInfo { peb_base_address, process_name: self.process_name.clone() }
+        ProcessInfo {
+            peb_base_address,
+            process_name: self.process_name.clone(),
+        }
     }
 }
