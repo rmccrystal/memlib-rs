@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::fmt;
 use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
@@ -268,5 +269,11 @@ impl<T> Pointer<T> {
     /// Writes value to address
     pub fn write(&self, value: T, handle: &Handle) {
         handle.write_memory(self.address, value)
+    }
+}
+
+impl<T> fmt::Display for Pointer<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} at {:X}", std::any::type_name::<T>(), self.address)
     }
 }
