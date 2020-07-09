@@ -5,6 +5,7 @@ use std::mem;
 use std::ptr;
 use std::slice;
 
+mod findpattern;
 mod kvm_handle;
 mod winapi_handle;
 
@@ -17,6 +18,7 @@ pub use kvm_handle::KVMProcessHandle;
 pub use winapi_handle::WinAPIProcessHandle;
 
 // Export memory scanning lib
+pub use findpattern::find_pattern;
 pub use scan::*;
 
 // Define the type we want to use for process addresses in case we want to change it later
@@ -142,46 +144,38 @@ impl Handle {
         values
     }
 
-    /// Dumps the contents of a module by `module_name` to a byte vec.
-    /// If the module is not found or there is an error reading memory, it will return an Error.
-    /// otherwise, it will return the dump
-    pub fn dump_module(&self, module_name: impl Into<String>) -> Result<Box<[u8]>> {
-        let module_name = module_name.into();
-        let module = self
-            .interface
-            .get_module(&module_name)
-            .ok_or_else(|| format!("Could not find module {}", module_name))?;
+    /// Dumps memory from memory_range.0 to memory_range.1
+    /// Returns a boxed byte slice
+    pub fn dump_memory(&self, memory_range: (Address, Address)) -> Box<[u8]> {
         let mut buffer: Vec<u8> = Vec::new();
-
-        // The address the module ends
-        let module_end_address = module.base_address + module.size;
 
         // The amount of bytes to be read at a time
         let chunk_size: usize = 4096;
 
         // The current memory location we are reading
-        let mut current_offset: Address = module.base_address;
+        let mut current_offset: Address = memory_range.0;
 
         loop {
             // The current offset should never be greater than the module_end_address
-            if current_offset > module_end_address {
-                dbg!(current_offset, module_end_address);
+            if current_offset > memory_range.1 {
+                dbg!(current_offset, memory_range.1);
                 panic!("dump_module attempted to read invalid memory")
             }
-            if current_offset == module_end_address {
+            if current_offset == memory_range.1 {
                 break;
             }
+
             // Create the size based on the current offset
             let read_size = {
                 // If we would read memory which is out of bounds, resize the read_size accordingly
-                if current_offset + chunk_size as u64 > module_end_address {
-                    (module_end_address - current_offset) as usize
+                if current_offset + chunk_size as u64 > memory_range.1 {
+                    (memory_range.1 - current_offset) as usize
                 } else {
                     chunk_size
                 }
             };
 
-            let memory = self.read_bytes(current_offset, read_size)?;
+            let memory = self.read_bytes(current_offset, read_size).unwrap();
 
             // Append the slice of memory to the buffer
             buffer.extend_from_slice(&memory);
@@ -189,7 +183,7 @@ impl Handle {
             current_offset += read_size as u64;
         }
 
-        Ok(buffer.into_boxed_slice())
+        buffer.into_boxed_slice()
     }
 
     // -------------------------------------------------------- //
@@ -236,6 +230,15 @@ impl Module {
     /// Returns the range of memory for the entire module
     pub fn get_memory_range(&self) -> (Address, Address) {
         (self.base_address, self.base_address + self.size)
+    }
+
+    pub fn dump(&self, handle: &Handle) -> Box<[u8]> {
+        handle.dump_memory(self.get_memory_range())
+    }
+
+    /// Finds a pattern in the module address range
+    pub fn find_pattern(&self, handle: &Handle, pattern: &str) -> Option<Address> {
+        find_pattern(&self.dump(handle), pattern)
     }
 }
 

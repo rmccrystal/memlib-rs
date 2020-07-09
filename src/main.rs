@@ -1,6 +1,6 @@
 use log::LevelFilter;
+use memlib::logger::MinimalLogger;
 use memory::{Handle, MemoryScan};
-use simplelog::{Config, SimpleLogger, TermLogger, TerminalMode};
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -9,7 +9,7 @@ use std::io::{BufRead, Write};
 mod memory;
 
 fn main() {
-    TermLogger::init(LevelFilter::Debug, Config::default(), TerminalMode::Mixed).unwrap();
+    MinimalLogger::init(LevelFilter::Debug).unwrap();
 
     // Create a handle to `csgo.exe`
     let handle = Handle::new("csgo.exe").unwrap();
