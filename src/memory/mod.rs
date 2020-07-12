@@ -7,16 +7,12 @@ use std::ptr;
 use std::slice;
 
 mod findpattern;
-mod kvm_handle;
-mod winapi_handle;
+mod global_handle;
+mod handle_interfaces;
+
+use handle_interfaces::*;
 
 pub mod scan;
-
-// kvm_handles are only available for linux machines running a windows KVM
-#[cfg(target_os = "linux")]
-pub use kvm_handle::KVMProcessHandle;
-#[cfg(target_os = "windows")]
-pub use winapi_handle::WinAPIProcessHandle;
 
 // Export memory scanning lib
 pub use findpattern::find_pattern;
@@ -78,7 +74,7 @@ impl Handle {
     /// with a KVM, a KVm handle would be created
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
-        Ok(Self::from_interface(KVMProcessHandle::attach(
+        Ok(Self::from_interface(kvm_handle::KVMProcessHandle::attach(
             &process_name,
         )?))
     }
@@ -91,9 +87,9 @@ impl Handle {
     /// with a KVM, a KVm handle would be created
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
-        Ok(Self::from_interface(WinAPIProcessHandle::attach(
-            &process_name,
-        )?))
+        Ok(Self::from_interface(
+            winapi_handle::WinAPIProcessHandle::attach(&process_name)?,
+        ))
     }
 
     /// Reads memory of type T from a process. If it is successful,
@@ -240,40 +236,5 @@ impl Module {
     /// Finds a pattern in the module address range
     pub fn find_pattern(&self, handle: &Handle, pattern: &str) -> Option<Address> {
         find_pattern(&self.dump(handle), pattern)
-    }
-}
-
-/// Represents a pointer to a type in external process memory
-/// This has the same memory layout as an `Address`, so this can be
-/// used in structs to represent pointers to a value
-#[repr(C)]
-pub struct Pointer<T> {
-    pub address: Address,
-    _marker: PhantomData<T>, // Store the type value (this doesn't change memory layout)
-}
-
-impl<T> Pointer<T> {
-    /// Creates a new pointer at address `address` and using process handle `handle`
-    pub fn new<U>(address: Address) -> Pointer<T> {
-        Pointer {
-            address,
-            _marker: PhantomData,
-        }
-    }
-
-    /// Reads the value of the pointer
-    pub fn read(&self, handle: &crate::memory::Handle) -> T {
-        handle.read_memory(self.address)
-    }
-
-    /// Writes value to address
-    pub fn write(&self, value: T, handle: &Handle) {
-        handle.write_memory(self.address, value)
-    }
-}
-
-impl<T> fmt::Display for Pointer<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} at {:X}", std::any::type_name::<T>(), self.address)
     }
 }

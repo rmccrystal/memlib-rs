@@ -60,15 +60,3 @@ fn main() {
         }
     }
 }
-
-fn dump_process(handle: &memory::Handle) -> Result<(), Box<dyn Error>> {
-    let process_name = handle.get_process_info().process_name;
-    let file_name = format!("{}.dmp", &process_name);
-    eprintln!("Dumping {} to {}", process_name, file_name);
-
-    let dump = handle.dump_module(&process_name)?;
-
-    let mut file = File::create(&file_name)?;
-    file.write_all(&dump)?;
-    Ok(())
-}

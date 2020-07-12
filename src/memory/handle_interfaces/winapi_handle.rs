@@ -3,7 +3,7 @@
 
 // Implements a process handle using ReadProcessMemory and WriteProcessMemory API calls
 
-use super::*;
+use super::super::*;
 
 use winapi::shared::ntdef::{HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
 

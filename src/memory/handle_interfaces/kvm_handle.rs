@@ -5,7 +5,7 @@
 // https://github.com/h33p/vmread-rs
 
 // Use everything from mod.rs
-use super::*;
+use super::super::*;
 use vmread;
 
 pub struct KVMProcessHandle {
