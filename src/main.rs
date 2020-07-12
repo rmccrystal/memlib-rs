@@ -1,10 +1,10 @@
 use log::LevelFilter;
 use memlib::logger::MinimalLogger;
 use memory::{Handle, MemoryScan};
-use std::error::Error;
-use std::fs::File;
+
+
 use std::io;
-use std::io::{BufRead, Write};
+use std::io::{BufRead};
 
 mod memory;
 

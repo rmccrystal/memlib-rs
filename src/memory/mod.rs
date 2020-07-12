@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
-use std::fmt;
-use std::marker::PhantomData;
+use log::*;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -87,6 +86,7 @@ impl Handle {
     /// with a KVM, a KVm handle would be created
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
+        info!("Creating a process handle to {}", process_name);
         Ok(Self::from_interface(
             winapi_handle::WinAPIProcessHandle::attach(&process_name)?,
         ))
@@ -97,6 +97,7 @@ impl Handle {
     pub fn read_memory<T>(&self, address: Address) -> T {
         // Get size of the type
         let size = mem::size_of::<T>();
+
         let bytes = self
             .interface
             .read_bytes(address, size)
@@ -114,6 +115,7 @@ impl Handle {
     /// the function will return, otherwise the function will panic
     pub fn write_memory<T>(&self, address: Address, value: T) {
         let size = mem::size_of::<T>();
+
         // Create a byte buffer from the type
         // https://stackoverflow.com/a/42186553
         let buff = unsafe { slice::from_raw_parts((&value as *const T) as *const u8, size) };
@@ -145,6 +147,12 @@ impl Handle {
     /// Returns a boxed byte slice
     pub fn dump_memory(&self, memory_range: (Address, Address)) -> Box<[u8]> {
         let mut buffer: Vec<u8> = Vec::new();
+
+        trace!(
+            "Writing {} bytes of memory starting at 0x{:X}",
+            memory_range.1 - memory_range.0,
+            memory_range.0
+        );
 
         // The amount of bytes to be read at a time
         let chunk_size: usize = 4096;
@@ -191,20 +199,32 @@ impl Handle {
     /// If it is successful, it will return a boxed byte slice
     /// Otherwise, it will return the error.
     pub fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
+        trace!("Reading {} bytes of memory at 0x{:X}", size, address);
         self.interface.read_bytes(address, size)
     }
 
     /// Write a slice of bytes to a process at the address `address`
     /// Returns an error if unsuccessful
     pub fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
+        trace!("Writing {} bytes of memory at 0x{:X}", size, address);
+
         self.interface.write_bytes(address, bytes)
     }
 
     /// Gets information about a module in the form of a Module struct by name
     /// If the module is found, it will return Some with the Module object,
     /// Otherwise, it will return None
-    pub fn get_module(&self, module_name: &String) -> Option<Module> {
-        self.interface.get_module(module_name)
+    pub fn get_module(&self, module_name: impl ToString) -> Option<Module> {
+        let module_name = module_name.to_string();
+        let module = self.interface.get_module(&module_name);
+        if module.is_some() {
+            debug!(
+                "Found module {} with base address 0x{:X}",
+                module.unwrap().name,
+                module.unwrap().base_address
+            )
+        }
+        module
     }
 
     /// Returns a struct of process info useful in some cheats

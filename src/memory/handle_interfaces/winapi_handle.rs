@@ -16,7 +16,7 @@ use log::*;
 use std::ffi::CString;
 use std::mem;
 
-use std::string::FromUtf8Error;
+
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
