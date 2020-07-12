@@ -16,7 +16,6 @@ use log::*;
 use std::ffi::CString;
 use std::mem;
 
-
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
@@ -76,8 +75,6 @@ impl WinAPIProcessHandle {
                             .into());
                         }
 
-                        debug!("Attached to process {}", process_name);
-
                         return Ok(Box::new(WinAPIProcessHandle {
                             process_handle,
                             pid: entry.th32ProcessID,
@@ -96,7 +93,6 @@ impl WinAPIProcessHandle {
 impl Drop for WinAPIProcessHandle {
     fn drop(&mut self) {
         if self.process_handle != NULL {
-            debug!("Closed handle to {}", self.process_name);
             unsafe { CloseHandle(self.process_handle) };
         }
     }
@@ -184,8 +180,6 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         let module = module_list.into_iter().find(|module| {
             c_char_array_to_string(module.szModule.to_vec()) == module_name.to_lowercase()
         })?;
-
-        debug!("Found module {}", module_name);
 
         Some(Module {
             name: module_name.clone(),

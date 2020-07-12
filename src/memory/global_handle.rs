@@ -79,7 +79,7 @@ pub fn write_bytes(address: Address, bytes: &[u8]) -> Result<()> {
 /// Gets information about a module in the form of a Module struct by name
 /// If the module is found, it will return Some with the Module object,
 /// Otherwise, it will return None
-pub fn get_module(module_name: &String) -> Option<Module> {
+pub fn get_module(module_name: impl ToString) -> Option<Module> {
     get_global_handle().get_module(module_name)
 }
 

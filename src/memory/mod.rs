@@ -17,6 +17,9 @@ pub mod scan;
 pub use findpattern::find_pattern;
 pub use scan::*;
 
+pub use global_handle::*;
+use std::borrow::Borrow;
+
 // Define the type we want to use for process addresses in case we want to change it later
 /// A type alias for process addresses
 pub type Address = u64;
@@ -206,7 +209,7 @@ impl Handle {
     /// Write a slice of bytes to a process at the address `address`
     /// Returns an error if unsuccessful
     pub fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
-        trace!("Writing {} bytes of memory at 0x{:X}", size, address);
+        trace!("Writing {} bytes of memory at 0x{:X}", bytes.len(), address);
 
         self.interface.write_bytes(address, bytes)
     }
@@ -218,10 +221,10 @@ impl Handle {
         let module_name = module_name.to_string();
         let module = self.interface.get_module(&module_name);
         if module.is_some() {
+            let module = module.borrow().as_ref().unwrap();
             debug!(
                 "Found module {} with base address 0x{:X}",
-                module.unwrap().name,
-                module.unwrap().base_address
+                module.name, module.base_address
             )
         }
         module
@@ -249,12 +252,12 @@ impl Module {
         (self.base_address, self.base_address + self.size)
     }
 
-    pub fn dump(&self, handle: &Handle) -> Box<[u8]> {
-        handle.dump_memory(self.get_memory_range())
+    pub fn dump(&self) -> Box<[u8]> {
+        dump_memory(self.get_memory_range())
     }
 
     /// Finds a pattern in the module address range
-    pub fn find_pattern(&self, handle: &Handle, pattern: &str) -> Option<Address> {
-        find_pattern(&self.dump(handle), pattern)
+    pub fn find_pattern(&self, pattern: &str) -> Option<Address> {
+        find_pattern(&self.dump(), pattern)
     }
 }
