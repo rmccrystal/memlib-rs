@@ -26,7 +26,7 @@ where
             }
         };
 
-        let type_size = std::mem::size_of::<T>() as u64;
+        let type_size = std::mem::size_of::<T>() as Address;
         let mut addresses = Vec::new();
 
         // Push valid addresses in the address_range

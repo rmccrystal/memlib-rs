@@ -26,7 +26,8 @@ pub fn find_pattern(data: &[u8], pattern: &str) -> Option<Address> {
         .map(|m| m.start() as u64);
     if result.is_some() {
         let result = result.unwrap();
-        debug!("Found pattern {} with offset 0x{:X}", pattern, result);
+        debug!("Found pattern {} at offset 0x{:X}", pattern, result);
+        return Some(result as Address);
     }
-    result
+    None
 }

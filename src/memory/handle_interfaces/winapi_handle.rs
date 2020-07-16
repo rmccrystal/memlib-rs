@@ -5,7 +5,7 @@
 
 use super::super::*;
 
-use winapi::shared::ntdef::{HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
+use winapi::shared::ntdef::{FALSE, HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
 
 use winapi::um::tlhelp32::{
     CreateToolhelp32Snapshot, Module32First, Module32Next, Process32First, Process32Next,
@@ -23,7 +23,7 @@ use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winbase::{
     FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 };
-use winapi::um::winnt::{LANG_NEUTRAL, PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE};
+use winapi::um::winnt::{LANG_NEUTRAL, PROCESS_ALL_ACCESS};
 
 pub struct WinAPIProcessHandle {
     process_handle: HANDLE,
@@ -57,11 +57,8 @@ impl WinAPIProcessHandle {
                     if current_process_name.to_lowercase() == process_name.to_lowercase() {
                         // If we get here, we have our process
                         // Create a HANDLE
-                        let process_handle = OpenProcess(
-                            PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION,
-                            0,
-                            entry.th32ProcessID,
-                        );
+                        let process_handle =
+                            OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID);
 
                         if process_handle == NULL {
                             let error_code = GetLastError();
@@ -103,20 +100,23 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         let mut buff: Box<[u8]> = (vec![0u8; size]).into_boxed_slice();
         let mut bytes_read: usize = 0;
 
-        unsafe {
+        let success = unsafe {
             ReadProcessMemory(
                 self.process_handle,
                 address as _,
                 buff.as_mut_ptr() as _,
                 size,
                 &mut bytes_read,
-            );
-        }
+            )
+        };
 
-        if bytes_read != size {
+        if success == 0 {
+            let error_code = unsafe { GetLastError() };
+            let error_message =
+                error_code_to_message(error_code).unwrap_or("(unknown error)".to_string());
             return Err(format!(
-                "ReadProcessMemory read {} bytes when it was supposed to read {}",
-                &bytes_read, &size
+                "ReadProcessMemory at 0x{:X} with {} bytes failed: {} (0x{:X})",
+                address, size, error_message, error_code
             )
             .into());
         }
@@ -127,21 +127,26 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
     fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
         let mut bytes_written: usize = 0;
 
-        unsafe {
+        let success = unsafe {
             WriteProcessMemory(
                 self.process_handle,
                 address as _,
                 bytes.as_ptr() as _,
                 bytes.len(),
                 &mut bytes_written,
-            );
-        }
+            )
+        };
 
-        if bytes_written != bytes.len() {
+        if success == 0 {
+            let error_code = unsafe { GetLastError() };
+            let error_message =
+                error_code_to_message(error_code).unwrap_or("(unknown error)".to_string());
             return Err(format!(
-                "WriteProcessMemory wrote {} bytes when it was supposed to write {}",
-                &bytes_written,
-                &bytes.len()
+                "WriteProcessMemory at 0x{:X} with {} bytes failed: {} (0x{:X})",
+                address,
+                bytes.len(),
+                error_message,
+                error_code
             )
             .into());
         }
@@ -184,7 +189,7 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         Some(Module {
             name: module_name.clone(),
             size: module.modBaseSize as u64,
-            base_address: module.modBaseAddr as u64,
+            base_address: module.modBaseAddr as Address,
         })
     }
 
@@ -201,9 +206,9 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
 fn error_code_to_message(code: u32) -> Option<String> {
     let mut message_buf: [i8; 512] = [0; 512];
 
-    unsafe {
-        // Get the error string by the code
-        let buf_len = FormatMessageA(
+    // Get the error string by the code
+    let buf_len = unsafe {
+        FormatMessageA(
             FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL,
             code,
@@ -211,21 +216,22 @@ fn error_code_to_message(code: u32) -> Option<String> {
             message_buf.as_mut_ptr(),
             512,
             NULL as *mut *mut i8,
-        );
+        )
+    };
 
-        // there is no message for the error
-        if buf_len == 0 {
-            return None;
-        }
-
-        // Create a message from the message buffer
-        let message = CString::from_raw(message_buf.as_mut_ptr())
-            .into_string()
-            .unwrap()
-            .replace("\r\n", ""); // Remove newline
-
-        Some(message)
+    // there is no message for the error
+    if buf_len == 0 {
+        return None;
     }
+
+    let mut error_string = c_char_array_to_string(message_buf.to_vec());
+
+    // Remove \n from end of string
+    error_string.pop();
+    // Remove \r from end of string
+    error_string.pop();
+
+    Some(error_string)
 }
 
 // Converts an i8 vec found in WINAPI structs to a string

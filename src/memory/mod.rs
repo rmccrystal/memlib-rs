@@ -20,8 +20,10 @@ pub use scan::*;
 pub use global_handle::*;
 use std::borrow::Borrow;
 
-// Define the type we want to use for process addresses in case we want to change it later
-/// A type alias for process addresses
+/// Defines the game address width based on if the `32-bit` feature is set
+#[cfg(feature = "32-bit")]
+pub type Address = u32;
+#[cfg(not(feature = "32-bit"))]
 pub type Address = u64;
 
 // There are going to be different error types throughout
@@ -138,7 +140,7 @@ impl Handle {
         // Read memory at each address
         for i in 0..length {
             // Multiply index by size to get the pointer for the index
-            let address = address + (i * size as usize) as u64;
+            let address = address + (i * size as usize) as Address;
             values.push(self.read_memory(address));
         }
 
@@ -176,7 +178,7 @@ impl Handle {
             // Create the size based on the current offset
             let read_size = {
                 // If we would read memory which is out of bounds, resize the read_size accordingly
-                if current_offset + chunk_size as u64 > memory_range.1 {
+                if current_offset + chunk_size as Address > memory_range.1 {
                     (memory_range.1 - current_offset) as usize
                 } else {
                     chunk_size
@@ -188,10 +190,32 @@ impl Handle {
             // Append the slice of memory to the buffer
             buffer.extend_from_slice(&memory);
 
-            current_offset += read_size as u64;
+            current_offset += read_size as Address;
         }
 
         buffer.into_boxed_slice()
+    }
+
+    /// Reads a null terminated i8 array string starting at `address`
+    /// If the string is longer than 4096 characters, it will only read
+    /// the first 4096 characters
+    pub fn read_string(&self, address: Address) -> String {
+        let mut bytes: Vec<u8> = Vec::new();
+
+        for i in 0..4096 {
+            // Read the byte at index i from memory
+            let byte: i8 = self.read_memory(address + i);
+
+            // If the byte is a null terminator, break
+            if byte == 0 {
+                break;
+            }
+
+            // Convert i8 to u8 in the `bytes` vec
+            bytes.push(byte as _)
+        }
+
+        String::from_utf8(bytes).unwrap()
     }
 
     // -------------------------------------------------------- //
@@ -210,7 +234,6 @@ impl Handle {
     /// Returns an error if unsuccessful
     pub fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
         trace!("Writing {} bytes of memory at 0x{:X}", bytes.len(), address);
-
         self.interface.write_bytes(address, bytes)
     }
 
@@ -249,7 +272,7 @@ pub struct Module {
 impl Module {
     /// Returns the range of memory for the entire module
     pub fn get_memory_range(&self) -> (Address, Address) {
-        (self.base_address, self.base_address + self.size)
+        (self.base_address, self.base_address + self.size as Address)
     }
 
     pub fn dump(&self) -> Box<[u8]> {

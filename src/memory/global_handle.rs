@@ -83,6 +83,13 @@ pub fn get_module(module_name: impl ToString) -> Option<Module> {
     get_global_handle().get_module(module_name)
 }
 
+/// Reads a null terminated i8 array string starting at `address`
+/// If the string is longer than 4096 characters, it will only read
+/// the first 4096 characters
+pub fn read_string(address: Address) -> String {
+    get_global_handle().read_string(address)
+}
+
 /// Returns a struct of process info useful in some cheats
 pub fn get_process_info() -> ProcessInfo {
     get_global_handle().get_process_info()

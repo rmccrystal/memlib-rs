@@ -2,10 +2,11 @@ use log::LevelFilter;
 use memlib::logger::MinimalLogger;
 use memory::{Handle, MemoryScan};
 
-
 use std::io;
-use std::io::{BufRead};
+use std::io::BufRead;
 
+mod hacks;
+mod math;
 mod memory;
 
 fn main() {
