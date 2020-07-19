@@ -70,7 +70,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
                 &self.c_context.process,
                 self.process.proc.dirBase,
                 buff.as_mut_ptr() as u64,
-                address,
+                address as u64,
                 size as u64,
             )
         };
@@ -87,7 +87,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
 
     fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
         self.process
-            .write(&self.c_context, address, &Vec::from(bytes));
+            .write(&self.c_context, address as u64, &Vec::from(bytes));
         Ok(())
     }
 
