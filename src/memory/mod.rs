@@ -5,19 +5,20 @@ use std::mem;
 use std::ptr;
 use std::slice;
 
+mod pointer;
 mod findpattern;
 mod global_handle;
 mod handle_interfaces;
 
-use handle_interfaces::*;
-
 pub mod scan;
 
-// Export memory scanning lib
 pub use findpattern::find_pattern;
 pub use scan::*;
-
 pub use global_handle::*;
+pub use pointer::*;
+
+
+use handle_interfaces::*;
 use std::borrow::Borrow;
 
 /// Defines the game address width based on if the `32-bit` feature is set

@@ -1,1 +1,0 @@
-This project is a simple template for creating cheats off of this source

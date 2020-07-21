@@ -1,3 +1,5 @@
+#![feature(const_generics)]
+
 pub mod hacks;
 pub mod logger;
 pub mod math;
