@@ -28,7 +28,7 @@ pub type Address = u64;
 
 // There are going to be different error types throughout
 // this package, so define Result to use a boxed Error trait
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// An abstract interface for reading and writing memory to a process
 /// allowing cross platform interaction with a process.
