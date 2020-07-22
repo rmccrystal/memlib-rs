@@ -28,7 +28,7 @@ pub type Address = u64;
 
 // There are going to be different error types throughout
 // this package, so define Result to use a boxed Error trait
-type BoxedErrorResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// An abstract interface for reading and writing memory to a process
 /// allowing cross platform interaction with a process.
@@ -37,11 +37,11 @@ pub trait ProcessHandleInterface {
     /// Reads `size` bytes from a at the specified `address`.
     /// If it is successful, it will return a boxed byte slice
     /// Otherwise, it will return the error.
-    fn read_bytes(&self, address: Address, size: usize) -> BoxedErrorResult<Box<[u8]>>;
+    fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>>;
 
     /// Write a slice of bytes to a process at the address `address`
     /// Returns an error if unsuccessful
-    fn write_bytes(&self, address: Address, bytes: &[u8]) -> BoxedErrorResult<()>;
+    fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()>;
 
     /// Gets information about a module in the form of a Module struct by name
     /// If the module is found, it will return Some with the Module object,
@@ -76,7 +76,7 @@ impl Handle {
     ///
     /// For example, if the program was running on linux
     /// with a KVM, a KVm handle would be created
-    pub fn new(process_name: impl ToString) -> BoxedErrorResult<Handle> {
+    pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
         Ok(Self::from_interface(kvm_handle::KVMProcessHandle::attach(
             &process_name,
@@ -89,7 +89,7 @@ impl Handle {
     ///
     /// For example, if the program was running on linux
     /// with a KVM, a KVm handle would be created
-    pub fn new(process_name: impl ToString) -> BoxedErrorResult<Handle> {
+    pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
         info!("Creating a process handle to {}", process_name);
         Ok(Self::from_interface(
@@ -225,14 +225,14 @@ impl Handle {
     /// Reads `size` bytes from a at the specified `address`.
     /// If it is successful, it will return a boxed byte slice
     /// Otherwise, it will return the error.
-    pub fn read_bytes(&self, address: Address, size: usize) -> BoxedErrorResult<Box<[u8]>> {
+    pub fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
         trace!("Reading {} bytes of memory at 0x{:X}", size, address);
         self.interface.read_bytes(address, size)
     }
 
     /// Write a slice of bytes to a process at the address `address`
     /// Returns an error if unsuccessful
-    pub fn write_bytes(&self, address: Address, bytes: &[u8]) -> BoxedErrorResult<()> {
+    pub fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
         trace!("Writing {} bytes of memory at 0x{:X}", bytes.len(), address);
         self.interface.write_bytes(address, bytes)
     }
