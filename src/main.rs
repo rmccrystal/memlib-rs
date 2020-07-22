@@ -6,6 +6,7 @@ use std::io;
 use std::io::BufRead;
 
 mod hacks;
+mod macros;
 mod math;
 mod memory;
 
