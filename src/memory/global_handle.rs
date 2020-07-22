@@ -4,7 +4,7 @@
 
 use super::Handle;
 
-use super::{Address, Module, ProcessInfo, Result};
+use super::{Address, BoxedErrorResult, Module, ProcessInfo};
 use log::*;
 use std::fmt;
 use std::marker::PhantomData;
@@ -66,13 +66,13 @@ pub fn dump_memory(memory_range: (Address, Address)) -> Box<[u8]> {
 /// Reads `size` bytes from a at the specified `address`.
 /// If it is successful, it will return a boxed byte slice
 /// Otherwise, it will return the error.
-pub fn read_bytes(address: Address, size: usize) -> Result<Box<[u8]>> {
+pub fn read_bytes(address: Address, size: usize) -> BoxedErrorResult<Box<[u8]>> {
     get_global_handle().read_bytes(address, size)
 }
 
 /// Write a slice of bytes to a process at the address `address`
 /// Returns an error if unsuccessful
-pub fn write_bytes(address: Address, bytes: &[u8]) -> Result<()> {
+pub fn write_bytes(address: Address, bytes: &[u8]) -> BoxedErrorResult<()> {
     get_global_handle().write_bytes(address, bytes)
 }
 

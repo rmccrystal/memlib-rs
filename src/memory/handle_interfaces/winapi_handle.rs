@@ -34,7 +34,9 @@ pub struct WinAPIProcessHandle {
 impl WinAPIProcessHandle {
     /// Attaches to a process using OpenProcess and implements the ProcessHandle
     /// trait using ReadProcessMemory and WriteProcessMemory
-    pub fn attach<'a>(process_name: impl ToString) -> Result<Box<dyn ProcessHandleInterface + 'a>> {
+    pub fn attach<'a>(
+        process_name: impl ToString,
+    ) -> BoxedErrorResult<Box<dyn ProcessHandleInterface + 'a>> {
         let process_name = process_name.to_string();
 
         // https://stackoverflow.com/a/865201/11639049
@@ -96,7 +98,7 @@ impl Drop for WinAPIProcessHandle {
 }
 
 impl ProcessHandleInterface for WinAPIProcessHandle {
-    fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
+    fn read_bytes(&self, address: Address, size: usize) -> BoxedErrorResult<Box<[u8]>> {
         let mut buff: Box<[u8]> = (vec![0u8; size]).into_boxed_slice();
         let mut bytes_read: usize = 0;
 
@@ -124,7 +126,7 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         Ok(buff)
     }
 
-    fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
+    fn write_bytes(&self, address: Address, bytes: &[u8]) -> BoxedErrorResult<()> {
         let mut bytes_written: usize = 0;
 
         let success = unsafe {

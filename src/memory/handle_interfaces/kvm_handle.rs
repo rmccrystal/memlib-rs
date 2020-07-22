@@ -20,7 +20,7 @@ impl KVMProcessHandle {
     // If successful, returns a boxed ProcessHandle trait
     pub fn attach<'a>(
         process_name: impl Into<String>,
-    ) -> Result<Box<dyn ProcessHandleInterface + 'a>> {
+    ) -> BoxedErrorResult<Box<dyn ProcessHandleInterface + 'a>> {
         let process_name = process_name.into();
         // Creating context prints some random shit so put lines around it
         println!("--------------------------------------");
@@ -59,7 +59,7 @@ impl KVMProcessHandle {
 }
 
 impl ProcessHandleInterface for KVMProcessHandle {
-    fn read_bytes(&self, address: Address, size: usize) -> Result<Box<[u8]>> {
+    fn read_bytes(&self, address: Address, size: usize) -> BoxedErrorResult<Box<[u8]>> {
         // Create a byte buffer by creating a vec of size and turning it into a slice
         // We do this so we can let the read function write to this buffer
         let mut buff: Box<[u8]> = (vec![0u8; size]).into_boxed_slice();
@@ -85,7 +85,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
         Ok(buff.into())
     }
 
-    fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
+    fn write_bytes(&self, address: Address, bytes: &[u8]) -> BoxedErrorResult<()> {
         self.process
             .write(&self.c_context, address as u64, &Vec::from(bytes));
         Ok(())
