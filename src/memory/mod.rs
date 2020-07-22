@@ -5,7 +5,6 @@ use std::mem;
 use std::ptr;
 use std::slice;
 
-mod pointer;
 mod findpattern;
 mod global_handle;
 mod handle_interfaces;
@@ -13,10 +12,8 @@ mod handle_interfaces;
 pub mod scan;
 
 pub use findpattern::find_pattern;
-pub use scan::*;
 pub use global_handle::*;
-pub use pointer::*;
-
+pub use scan::*;
 
 use handle_interfaces::*;
 use std::borrow::Borrow;

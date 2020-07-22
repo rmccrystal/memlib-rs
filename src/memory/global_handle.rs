@@ -6,8 +6,8 @@ use super::Handle;
 
 use super::{Address, Module, ProcessInfo, Result};
 use log::*;
-use std::fmt;
-use std::marker::PhantomData;
+
+
 
 /// The global handle object
 static mut GLOBAL_HANDLE: Option<Handle> = None;

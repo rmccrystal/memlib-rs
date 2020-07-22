@@ -5,15 +5,15 @@
 
 use super::super::*;
 
-use winapi::shared::ntdef::{FALSE, HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
+use winapi::shared::ntdef::{HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
 
 use winapi::um::tlhelp32::{
     CreateToolhelp32Snapshot, Module32First, Module32Next, Process32First, Process32Next,
     MODULEENTRY32, PROCESSENTRY32, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS,
 };
 
-use log::*;
-use std::ffi::CString;
+
+
 use std::mem;
 
 use winapi::um::errhandlingapi::GetLastError;
