@@ -117,9 +117,12 @@ impl ProcessHandleInterface for KVMProcessHandle {
 
     fn get_process_info(&self) -> ProcessInfo {
         let process = self.process.clone();
-        let peb = process.get_peb(self.c_context);
-        // let peb_base_address = peb.ImageBaseAddress;
-        let peb_base_address = peb.Ldr;
+
+        // https://github.com/h33p/vmread/blob/9ba4b7b1232c1a40831bc9ed5cf61598aadad2d4/wintools.c#L443
+        let peb_base_address = unsafe {
+            vmread::sys::MemReadU64(&self.c_context.process as *const _, self.process.proc.physProcess + self.c_context.offsets.peb as u64)
+        };
+
         ProcessInfo {
             peb_base_address,
             process_name: self.process_name.clone(),
