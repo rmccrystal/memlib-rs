@@ -1,6 +1,7 @@
 use pretty_hex::*;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use log::*;
 
 /// A timer which runs a loop at a consistent rate
 /// For example, in a game hack, we might want to run the main
@@ -35,6 +36,7 @@ impl LoopTimer {
 
     /// Waits until we have waited enough time since the `last_tick` according to the `tickrate`
     pub fn wait(&mut self) {
+        trace!("Loop took {} ms", (Instant::now() - self.last_tick).as_millis());
         // Wait until we've waited enough time
         while self.last_tick + Duration::from_millis(self.ms_delay) > Instant::now() {
             sleep(Duration::from_micros(1));
