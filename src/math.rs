@@ -1,4 +1,13 @@
-type GameFloat = f32;
+#[repr(C)]
+#[derive(Debug)]
+pub struct Vector3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
 
-pub type Vector3 = nalgebra::Vector3<GameFloat>;
-pub type Rotation3 = nalgebra::Rotation3<GameFloat>;
+impl Vector3 {
+    pub fn is_zero(&self) -> bool {
+        self.x == 0.0 && self.y == 0.0 && self.z == 0.0
+    }
+}

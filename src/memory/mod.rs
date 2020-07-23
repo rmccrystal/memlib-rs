@@ -134,6 +134,7 @@ impl Handle {
     /// Otherwise, the function will panic
     pub fn read_array<T>(&self, address: Address, length: usize) -> Vec<T> {
         let size = std::mem::size_of::<T>() as u32;
+
         // Creates an array lf values for our result
         let mut values = Vec::new();
 
