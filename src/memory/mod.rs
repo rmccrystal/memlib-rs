@@ -8,12 +8,14 @@ use std::slice;
 mod findpattern;
 mod global_handle;
 mod handle_interfaces;
+mod pointer;
 
 pub mod scan;
 
 pub use findpattern::find_pattern;
 pub use global_handle::*;
 pub use scan::*;
+pub use pointer::*;
 
 use handle_interfaces::*;
 use std::borrow::Borrow;
