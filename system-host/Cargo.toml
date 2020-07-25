@@ -9,7 +9,4 @@ edition = "2018"
 [dependencies]
 winapi = "0.3.9"
 log = "*"
-simplelog = "*"
-jsonrpc-core = "14.2.0"
-jsonrpc-derive = "14.2.1"
-jsonrpc-tcp-server = "14.2.0"
+tarpc = [ version = "0.21.0", features = ["full"] ]

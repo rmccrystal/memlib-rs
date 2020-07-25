@@ -1,22 +1,19 @@
-use jsonrpc_derive::rpc;
-use jsonrpc_core::{Result, IoHandler};
-use jsonrpc_tcp_server::ServerBuilder;
 use std::net::{SocketAddr, SocketAddrV4};
 use log::*;
+use tarpc::context::Context;
 
-#[rpc(server)]
-pub trait SystemHandleInterface {
+#[tarpc::service]
+pub trait SystemHandle {
     // Gets a down or up state of a certain key using a VK key code:
     // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    #[rpc(name = "get_key_state")]
-    fn get_key_state(&self, key: i32) -> Result<bool>;
+    fn get_key_state(key: i32) -> bool;
 }
 
-pub struct SystemHandle;
+pub struct SystemHandleServer;
 
-impl SystemHandleInterface for SystemHandle {
-    fn get_key_state(&self, key: i32) -> Result<bool> {
-        Ok(true)
+impl SystemHandle for SystemHandleServer {
+    fn get_key_state(self, ctx: Context, key: i32) -> bool {
+        true
     }
 }
 
