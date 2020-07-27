@@ -17,8 +17,10 @@ pretty-hex = "0.1.1"
 nalgebra = "0.21.1"
 tarpc = "0.21.0"
 serde = "1.0.114"
-tokio = "0.2.22"
-tokio-serde = "0.6.1"
+tokio = { version = "0.2.22", features = ["rt-threaded"] }
+tokio-serde = { version = "0.6.1", features = ["json"] }
+futures = "0.3.5"
+lazy_static = "1.4.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3.9", features = ["memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi"] }
 [target.'cfg(target_os = "linux")'.dependencies]
