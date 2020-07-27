@@ -1,3 +1,5 @@
+#![cfg(windows)]
+
 use winapi::um::*;
 
 // Gets a down or up state of a certain key using a VK key code:
