@@ -2,5 +2,5 @@
 // to import this crate and use it as a host
 
 mod rpc;
-pub use rpc::{SystemHandle, SystemHandleInterface};
+pub use rpc::*;
 
