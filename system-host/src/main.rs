@@ -1,6 +1,6 @@
 use log::*;
 
-mod system;
+pub mod system;
 mod rpc;
 
 pub const LOG_LEVEL: LevelFilter = LevelFilter::Debug;
