@@ -3,6 +3,8 @@ use futures::{future, StreamExt};
 use tarpc::server;
 use tarpc::server::{Handler, Serve};
 use tarpc::context::Context;
+use super::system;
+
 
 #[tarpc::service]
 pub trait SystemHandle {
@@ -17,7 +19,7 @@ struct SystemHandleServer;
 #[tarpc::server]
 impl SystemHandle for SystemHandleServer {
     async fn get_key_state(self, _: Context, key: i32) -> bool {
-        true
+        system::get_key_state(key)
     }
 }
 

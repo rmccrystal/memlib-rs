@@ -4,19 +4,18 @@ use tarpc::serde_transport::Transport;
 
 mod util;
 mod functions;
+
 pub use functions::*;
 
 static mut CONNECTION: Option<system_host::SystemHandleClient> = None;
 
 #[cfg(not(windows))]
 /// If we're not on windows, we want to connect via a socket address
-pub fn connect(address: &std::net::SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
-    util::run_async(async move {
-        let transport = tarpc::serde_transport::tcp::connect(&address, tokio_serde::formats::Json::default()).await?;
-        let client = system_host::SystemHandleClient::new(client::Config::default(), transport).spawn()?;
-        unsafe { CONNECTION = Some(client) }
-        Ok(())
-    })
+pub async fn connect(address: &std::net::SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
+    let transport = tarpc::serde_transport::tcp::connect(&address, tokio_serde::formats::Json::default()).await?;
+    let client = system_host::SystemHandleClient::new(client::Config::default(), transport).spawn()?;
+    unsafe { CONNECTION = Some(client) }
+    Ok(())
 }
 
 #[cfg(windows)]
