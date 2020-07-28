@@ -1,7 +1,7 @@
 use log::*;
 
+pub mod rpc;
 pub mod system;
-mod rpc;
 
 pub const LOG_LEVEL: LevelFilter = LevelFilter::Debug;
 pub const LISTEN_IP: &str = "0.0.0.0";
