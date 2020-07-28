@@ -1,11 +1,8 @@
 mod system;
 
-#[tokio::main]
-async fn main() {
-    println!("trying to connect");
-    system::connect(&"192.168.122.129:9800".parse().unwrap()).await.unwrap();
+fn main() {
+    system::connect(&"192.168.122.129:9800".parse().unwrap()).unwrap();
     loop {
-        println!("{}", system::get_key_state(0x1E).await);
-
+        println!("{}", system::get_key_state(0x01));
     }
 }
