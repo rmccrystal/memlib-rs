@@ -114,7 +114,7 @@ impl_op_ex!(+ |a: &Angles2, b: &Angles2| -> Angles2 {
 impl_op_ex!(/ |a: &Angles2, div: &f32| -> Angles2 {
     Angles2{
         pitch: a.pitch / div,
-        yaw: a.pitch / div
+        yaw: a.yaw / div
     }
 });
 
