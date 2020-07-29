@@ -8,7 +8,7 @@ use enigo::MouseControllable;
 
 /// Gets a down or up state of a certain key using a VK key code:
 /// https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-pub unsafe fn get_key_state(key: i32) -> bool {
+pub fn get_key_state(key: i32) -> bool {
     debug!("get_key_state({})", key);
     unsafe { winuser::GetAsyncKeyState(key) } != 0
 }
