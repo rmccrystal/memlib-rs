@@ -10,7 +10,7 @@ use enigo::MouseControllable;
 /// https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 pub fn get_key_state(key: i32) -> bool {
     debug!("get_key_state({})", key);
-    unsafe { winuser::GetAsyncKeyState(key) } != 0
+    unsafe { winuser::GetAsyncKeyState(key) != 0 }
 }
 
 pub fn move_mouse_relative(dx: i32, dy: i32) {
