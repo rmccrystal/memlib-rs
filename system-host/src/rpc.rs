@@ -4,7 +4,7 @@ use tarpc::server;
 use tarpc::server::{Handler, Serve};
 use tarpc::context::Context;
 use crate::system;
-use crate::system_handle::*;
+use crate::service_definition::*;
 
 
 #[derive(Clone)]

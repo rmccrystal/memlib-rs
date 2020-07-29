@@ -3,11 +3,9 @@ use std::time::Instant;
 mod system;
 
 fn main() {
+    println!("Connecting...");
     system::connect(&"192.168.122.129:9800".parse().unwrap()).unwrap();
-    loop {
-        let start = Instant::now();
-        println!("{}", system::get_key_state(0x01));
-        let time = Instant::now() - start;
-        println!("{}", time.as_micros() as f32 / 1000.0);
-    }
+    println!("Connected...");
+    system::move_mouse_relative(5, 0);
+    // dbg!(system::get_key_state(5));
 }
