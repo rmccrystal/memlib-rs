@@ -1,6 +1,7 @@
 use super::*;
 use super::util::run_async;
 use tarpc::context;
+use log::*;
 
 // Gets a down or up state of a certain key using a VK key code:
 // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
