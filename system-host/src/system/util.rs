@@ -24,4 +24,8 @@ pub fn move_mouse_relative(dx: i32, dy: i32) {
     unsafe {
         winuser::SendInput(1, &mut input, mem::size_of::<winuser::INPUT>() as i32);
     }
+    let error = unsafe { errhandlingapi::GetLastError() };
+    if error != 0 {
+        error!("move_mouse_relative failed with error code 0x{:X}", error)
+    }
 }

@@ -6,6 +6,6 @@ fn main() {
     println!("Connecting...");
     system::connect(&"192.168.122.129:9800".parse().unwrap()).unwrap();
     println!("Connected...");
-    system::move_mouse_relative(5, 0);
+    system::move_mouse_relative(5, 50);
     // dbg!(system::get_key_state(5));
 }
