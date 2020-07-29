@@ -24,7 +24,7 @@ impl Vector3 {
 // Use a macro to implement operations
 // https://docs.rs/crate/impl_ops/0.1.1
 
-impl_op_ex!(+ |a: &Vector3, b: Vector3| -> Vector3 {
+impl_op_ex!(+ |a: &Vector3, b: &Vector3| -> Vector3 {
         Vector3{
             x: a.x + b.x,
             y: a.y + b.y,
@@ -32,7 +32,7 @@ impl_op_ex!(+ |a: &Vector3, b: Vector3| -> Vector3 {
         }
 });
 
-impl_op_ex!(- |a: &Vector3, b: Vector3| -> Vector3 {
+impl_op_ex!(- |a: &Vector3, b: &Vector3| -> Vector3 {
         Vector3{
             x: a.x - b.x,
             y: a.y - b.y,
@@ -99,19 +99,19 @@ impl Angles2 {
     }
 }
 
-impl_op_ex!(- |a: &Angles2, b: Angles2| -> Angles2 {
+impl_op_ex!(- |a: &Angles2, b: &Angles2| -> Angles2 {
         Angles2{
             pitch: a.pitch - b.pitch,
             yaw: a.yaw - b.yaw,
         }
 });
-impl_op_ex!(+ |a: &Angles2, b: Angles2| -> Angles2 {
+impl_op_ex!(+ |a: &Angles2, b: &Angles2| -> Angles2 {
         Angles2{
             pitch: a.pitch + b.pitch,
             yaw: a.yaw + b.yaw,
         }
 });
-impl_op_ex!(/ |a: &Angles2, div: f32| -> Angles2 {
+impl_op_ex!(/ |a: &Angles2, div: &f32| -> Angles2 {
     Angles2{
         pitch: a.pitch / div,
         yaw: a.pitch / div
