@@ -10,18 +10,18 @@ pub fn get_key_state(key: i32) -> bool {
 }
 
 pub fn move_mouse_relative(dx: i32, dy: i32) {
-    let mut input = winapi::INPUT {
+    let mut input_union: winuser::INPUT_u = unsafe { std::mem::zeroed() };
+    unsafe {
+        input_union.mi_mut().dx = dx;
+        input_union.mi_mut().dy = dy;
+        input_union.mi_mut().dwFlags = winuser::MOUSEEVENTF_MOVE;
+    }
+
+    let mut input = winuser::INPUT {
         type_: winuser::INPUT_KEYBOARD,
-        union_: winuser::MOUSEINPUT {
-            dx,
-            dy,
-            mouseData: 0,
-            dwFlags: winuser::MOUSEEVENTF_MOVE,
-            time: 0,
-            dwExtraInfo: ()
-        }
+        u: input_union,
     };
     unsafe {
-        winuser::SendInput(1, &mut input, mem::size_of::<winapi::INPUT>() as i32);
+        winuser::SendInput(1, &mut input, mem::size_of::<winuser::INPUT>() as i32);
     }
 }
