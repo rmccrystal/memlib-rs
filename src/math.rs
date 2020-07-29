@@ -1,8 +1,10 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, Rem};
 use std::f32::consts::PI;
+use impl_ops::*;
+use std::ops;
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -19,34 +21,30 @@ impl Vector3 {
     }
 }
 
-impl Add for Vector3 {
-    type Output = Self;
+// Use a macro to implement operations
+// https://docs.rs/crate/impl_ops/0.1.1
 
-    fn add(self, rhs: Self) -> Self::Output {
-        Self{
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-            z: self.z + rhs.z,
+impl_op_ex!(+ |a: &Vector3, b: Vector3| -> Vector3 {
+        Vector3{
+            x: a.x + b.x,
+            y: a.y + b.y,
+            z: a.z + b.z,
         }
-    }
-}
+});
 
-impl Sub for Vector3 {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self{
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
+impl_op_ex!(- |a: &Vector3, b: Vector3| -> Vector3 {
+        Vector3{
+            x: a.x - b.x,
+            y: a.y - b.y,
+            z: a.z - b.z,
         }
-    }
-}
+});
+
 
 
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 /// Represent pitch / yaw view angles
 /// Pitch: +down / -up
 /// Yaw: +right / -left
@@ -58,7 +56,7 @@ pub struct Angles2 {
 impl Angles2 {
     /// Creates a new Angles2 struct using a pitch and yaw and clamps it
     pub fn new(pitch: f32, yaw: f32) -> Self {
-        let mut new_angles = Self{pitch, yaw};
+        let mut new_angles = Self { pitch, yaw };
         new_angles.clamp();
         new_angles
     }
@@ -81,12 +79,44 @@ impl Angles2 {
             self.yaw += 180.0
         }
     }
+
+    pub fn length(&self) -> f32 {
+        f32::hypot(self.pitch, self.yaw)
+    }
+
+    pub fn normalize(&mut self) {
+        if self.pitch > 180.0 {
+            self.pitch -= 360.0;
+        }
+        if self.pitch < 180.0 {
+            self.pitch += 360.0
+        }
+
+        if self.yaw > 180.0 {
+            self.yaw -= 360.0
+        }
+        if self.yaw < -180.0 {
+            self.yaw += 360.0
+        }
+    }
 }
 
+/// Calculates the angle between `source` & `dest` relative to the current `angles`
+pub fn calculate_relative_angles(source: Vector3, dest: Vector3, angles: &Angles2) -> Angles2 {
+    let delta = dest - source;
+    let mut relative_angles = Angles2 {
+        pitch: radians_to_deg(f32::atan2(-delta.z, f32::hypot(delta.x, delta.y))) - angles.pitch,
+        yaw: radians_to_deg(f32::atan2(delta.y, delta.x)) - angles.yaw
+    };
+    relative_angles.normalize();
+
+    relative_angles
+}
 
 pub fn deg_to_radians(degrees: f32) -> f32 {
     degrees * (PI / 180.0)
 }
+
 pub fn radians_to_deg(radians: f32) -> f32 {
     radians * (180.0 / PI)
 }
