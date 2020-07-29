@@ -41,8 +41,6 @@ impl_op_ex!(- |a: &Vector3, b: Vector3| -> Vector3 {
 });
 
 
-
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 /// Represent pitch / yaw view angles
@@ -101,12 +99,31 @@ impl Angles2 {
     }
 }
 
+impl_op_ex!(- |a: &Angles2, b: Angles2| -> Angles2 {
+        Angles2{
+            pitch: a.pitch - b.pitch,
+            yaw: a.yaw - b.yaw,
+        }
+});
+impl_op_ex!(+ |a: &Angles2, b: Angles2| -> Angles2 {
+        Angles2{
+            pitch: a.pitch + b.pitch,
+            yaw: a.yaw + b.yaw,
+        }
+});
+impl_op_ex!(/ |a: &Angles2, div: f32| -> Angles2 {
+    Angles2{
+        pitch: a.pitch / div,
+        yaw: a.pitch / div
+    }
+});
+
 /// Calculates the angle between `source` & `dest` relative to the current `angles`
 pub fn calculate_relative_angles(source: Vector3, dest: Vector3, angles: &Angles2) -> Angles2 {
     let delta = dest - source;
     let mut relative_angles = Angles2 {
         pitch: radians_to_deg(f32::atan2(-delta.z, f32::hypot(delta.x, delta.y))) - angles.pitch,
-        yaw: radians_to_deg(f32::atan2(delta.y, delta.x)) - angles.yaw
+        yaw: radians_to_deg(f32::atan2(delta.y, delta.x)) - angles.yaw,
     };
     relative_angles.normalize();
 
