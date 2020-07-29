@@ -88,7 +88,7 @@ impl Angles2 {
         if self.pitch > 180.0 {
             self.pitch -= 360.0;
         }
-        if self.pitch < 180.0 {
+        if self.pitch < -180.0 {
             self.pitch += 360.0
         }
 
