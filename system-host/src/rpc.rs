@@ -13,11 +13,11 @@ struct SystemHandleServer;
 #[tarpc::server]
 impl SystemHandle for SystemHandleServer {
     async fn get_key_state(self, _: Context, key: i32) -> bool {
-        unsafe { system::get_key_state(key) }
+        system::get_key_state(key)
     }
 
     async fn move_mouse_relative(self, _: Context, dx: i32, dy: i32) {
-        unsafe { system::move_mouse_relative(dx, dy) }
+        system::move_mouse_relative(dx, dy)
     }
 }
 

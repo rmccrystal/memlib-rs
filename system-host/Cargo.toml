@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 winapi = { version = "*", features = ["impl-default", "winuser", "errhandlingapi"] }
+enigo = "0.0.14"
 log = "*"
 simplelog = "0.8.0"
 tarpc = { version = "0.21.0", features = ["full"] }
