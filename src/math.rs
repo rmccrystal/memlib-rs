@@ -59,6 +59,10 @@ impl Angles2 {
         new_angles
     }
 
+    pub fn is_zero(&self) -> bool {
+        self.pitch == 0.0 && self.yaw == 0.0
+    }
+
     /// Clamps the angles between:
     /// Pitch: [-90, 90]
     /// Yaw: [-180, 180]
