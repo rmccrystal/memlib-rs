@@ -1,6 +1,7 @@
 use tokio::net::TcpStream;
 use tarpc::client;
 use tarpc::serde_transport::Transport;
+use log::*;
 
 mod util;
 mod functions;
@@ -17,6 +18,7 @@ pub fn connect(address: &std::net::SocketAddr) -> Result<(), Box<dyn std::error:
         let transport = tarpc::serde_transport::tcp::connect(&address, tokio_serde::formats::Json::default()).await?;
         let client = system_host::SystemHandleClient::new(client::Config::default(), transport).spawn()?;
         unsafe { CONNECTION = Some(client) }
+        info!("Connected to system {}", &address);
         Ok(())
     })
 }
