@@ -8,7 +8,7 @@ pub struct MinimalLogger {
 
 impl MinimalLogger {
     pub fn init(level: LevelFilter) -> Result<(), SetLoggerError> {
-        set_max_level(level.clone());
+        set_max_level(level);
         set_boxed_logger(Box::new(Self { level }))
     }
 }
