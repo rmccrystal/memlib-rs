@@ -37,10 +37,22 @@ impl LoopTimer {
     /// Waits until we have waited enough time since the `last_tick` according to the `tickrate`
     pub fn wait(&mut self) {
         trace!("Loop took {} ms", (Instant::now() - self.last_tick).as_millis());
+
+        // Print if the loop took too long
+        let mut had_to_sleep = false;
         // Wait until we've waited enough time
         while self.last_tick + Duration::from_millis(self.ms_delay) > Instant::now() {
             sleep(Duration::from_micros(1));
+            had_to_sleep = true;
         }
+        if !had_to_sleep {
+            let ms_diff = (Instant::now() - self.last_tick).as_millis();
+                warn!("Loop took {} ms too long (delay: {}ms, took: {}ms)",
+                      ms_diff - self.ms_delay as u128,
+                      self.ms_delay,
+                      ms_diff);
+        }
+
         // Update last tick
         self.last_tick = Instant::now();
     }
