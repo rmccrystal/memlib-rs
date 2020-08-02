@@ -41,7 +41,7 @@ impl LoopTimer {
         // Print if the loop took too long
         let mut had_to_sleep = false;
         // Wait until we've waited enough time
-        while self.last_tick + Duration::from_millis(self.ms_delay) > Instant::now() {
+        while self.last_tick + Duration::from_millis(self.ms_delay) >= Instant::now() {
             sleep(Duration::from_micros(1));
             had_to_sleep = true;
         }
