@@ -1,12 +1,13 @@
-use tarpc::client;
-
 use log::*;
+use tarpc::client;
 
 mod functions;
 mod util;
 
 use crate::system::util::run_async;
 pub use functions::*;
+
+pub use win_key_codes as keys;
 
 static mut CONNECTION: Option<system_host::SystemHandleClient> = None;
 
