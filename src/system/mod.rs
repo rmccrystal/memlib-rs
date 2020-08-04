@@ -28,29 +28,12 @@ pub fn connect(address: &std::net::SocketAddr) -> Result<(), Box<dyn std::error:
 #[cfg(windows)]
 /// If we're on windows, we want to connect via a channel
 pub fn init() -> Result<(), Box<dyn std::error::Error>> {
-    run_async(async move {
-        // Start the server over a channel
-        use futures::future;
-        use tarpc::server;
-        use tarpc::server::{Handler, Serve};
-        use tokio::stream;
+    let client = run_async(system_host::rpc::listen_channel())?;
 
-        let (client_transport, server_transport) = tarpc::transport::channel::unbounded();
-        let server = server::new(server::Config::default())
-            .incoming(server_transport)
-            .respond_with(system_host::rpc::SystemHandleServer.serve())
+    unsafe { CONNECTION = Some(client) }
+    info!("Connected to system through channel");
 
-        // Spawn the server
-        tokio::spawn(server);
-
-        // Connect through the channel
-        let client =
-            system_host::SystemHandleClient::new(client::Config::default(), client_transport)
-                .spawn()?;
-        unsafe { CONNECTION = Some(client) }
-
-        Ok(())
-    })
+    Ok(())
 }
 
 /// Returns the RPC connection

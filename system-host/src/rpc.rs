@@ -1,11 +1,10 @@
-use log::*;
-use futures::{future, StreamExt};
-use tarpc::server;
-use tarpc::server::{Handler, Serve};
-use tarpc::context::Context;
-use crate::system;
 use crate::service_definition::*;
-
+use crate::system;
+use futures::{future, StreamExt};
+use log::*;
+use tarpc::context::Context;
+use tarpc::server::{Handler, Serve};
+use tarpc::{client, server};
 
 #[derive(Clone)]
 struct SystemHandleServer;
@@ -23,9 +22,10 @@ impl SystemHandle for SystemHandleServer {
 
 pub async fn listen(address: &std::net::SocketAddr) -> std::io::Result<()> {
     debug!("Attempting to listen on {}", &address);
-    let transport = tarpc::serde_transport::tcp::listen(&address, tokio_serde::formats::Json::default)
-        .await?
-        .filter_map(|r| future::ready(r.ok()));
+    let transport =
+        tarpc::serde_transport::tcp::listen(&address, tokio_serde::formats::Json::default)
+            .await?
+            .filter_map(|r| future::ready(r.ok()));
 
     info!("RPC listening on {}", &address);
 
@@ -34,4 +34,27 @@ pub async fn listen(address: &std::net::SocketAddr) -> std::io::Result<()> {
         .respond_with(SystemHandleServer.serve())
         .await;
     Ok(())
+}
+
+pub async fn listen_channel() -> Result<SystemHandleClient, Box<dyn std::error::Error>> {
+    // Start the server over a channel
+    use futures::future;
+    use tarpc::server;
+    use tarpc::server::*;
+    use tarpc::server::{Handler, Serve};
+    use tokio::stream;
+
+    let (client_transport, server_transport) = tarpc::transport::channel::unbounded();
+
+    let server = server::new(server::Config::default())
+        .incoming(stream::once(server_transport))
+        .respond_with(SystemHandleServer.serve());
+
+    // Spawn the server
+    tokio::spawn(server);
+
+    // Connect through the channel
+    let client = SystemHandleClient::new(client::Config::default(), client_transport).spawn()?;
+
+    Ok(client)
 }
