@@ -6,7 +6,6 @@
 
 // Use everything from mod.rs
 use super::super::*;
-use vmread;
 
 pub struct KVMProcessHandle {
     // some structs used by the vmread library
@@ -82,7 +81,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
         }
          */
 
-        Ok(buff.into())
+        Ok(buff)
     }
 
     fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
@@ -99,13 +98,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
             .refresh_modules(self.c_context)
             .module_list
             .iter()
-            .find(|module| module.name.to_lowercase() == module_name.to_lowercase());
-
-        // Return None if there is no address
-        if module.is_none() {
-            return None;
-        }
-        let module = module.unwrap();
+            .find(|module| module.name.to_lowercase() == module_name.to_lowercase())?;
 
         // If everything succeeds, return the base address
         Some(Module {

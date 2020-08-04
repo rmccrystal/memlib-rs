@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Rem};
+
 use std::f32::consts::PI;
 use impl_ops::*;
 use std::ops;
@@ -57,6 +57,10 @@ impl Angles2 {
         let mut new_angles = Self { pitch, yaw };
         new_angles.clamp();
         new_angles
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.pitch == 0.0 && self.yaw == 0.0
     }
 
     /// Clamps the angles between:

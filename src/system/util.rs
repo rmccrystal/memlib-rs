@@ -1,4 +1,4 @@
-/// Create our tokio runtime as a lazy_static
+// Create our tokio runtime as a lazy_static
 lazy_static::lazy_static! {
     static ref HANDLE: tokio::runtime::Handle = {
         let mut runtime = tokio::runtime::Builder::new()

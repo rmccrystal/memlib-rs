@@ -1,9 +1,6 @@
 use tarpc::client;
-use tarpc::serde_transport::Transport;
-use tokio::net::TcpStream;
 
-#[cfg(windows)]
-use system_host::rpc;
+use log::*;
 
 mod functions;
 mod util;
@@ -23,6 +20,7 @@ pub fn connect(address: &std::net::SocketAddr) -> Result<(), Box<dyn std::error:
         let client =
             system_host::SystemHandleClient::new(client::Config::default(), transport).spawn()?;
         unsafe { CONNECTION = Some(client) }
+        info!("Connected to system {}", &address);
         Ok(())
     })
 }

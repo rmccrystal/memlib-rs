@@ -1,4 +1,5 @@
 use log::{Metadata, Record, LevelFilter, SetLoggerError, set_max_level, set_boxed_logger, Level};
+use colored::Colorize;
 
 /// Implements a minimal logger that I like to use for my cheats
 pub struct MinimalLogger {
@@ -7,7 +8,7 @@ pub struct MinimalLogger {
 
 impl MinimalLogger {
     pub fn init(level: LevelFilter) -> Result<(), SetLoggerError> {
-        set_max_level(level.clone());
+        set_max_level(level);
         set_boxed_logger(Box::new(Self { level }))
     }
 }
@@ -23,11 +24,11 @@ impl log::Log for MinimalLogger {
         }
 
         let prefix = match record.level() {
-            Level::Error => "[ERROR]",
-            Level::Warn => "[!]",
-            Level::Info => "[+]",
-            Level::Debug => "[*]",
-            Level::Trace => "[?]",
+            Level::Error => "[ERROR]".red(),
+            Level::Warn => "[!]".yellow(),
+            Level::Info => "[+]".green(),
+            Level::Debug => "[*]".blue(),
+            Level::Trace => "[?]".magenta(),
         };
 
         println!("{} {}", prefix, record.args());

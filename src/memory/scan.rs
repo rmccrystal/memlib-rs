@@ -56,7 +56,7 @@ impl<T> MemoryScan<T>
         let matches = addresses.iter().map(|&addr| (addr, read_memory::<T>(addr))).collect();
 
         MemoryScan {
-            matches: matches,
+            matches,
             _marker: PhantomData,
         }
     }
