@@ -3,7 +3,6 @@
 
 use winapi::um::*;
 use log::*;
-use std::mem;
 use enigo::MouseControllable;
 
 /// Gets a down or up state of a certain key using a VK key code:
