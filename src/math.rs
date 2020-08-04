@@ -123,7 +123,7 @@ impl_op_ex!(/ |a: &Angles2, div: &f32| -> Angles2 {
 });
 
 /// Calculates the angle between `source` & `dest` relative to the current `angles`
-pub fn calculate_relative_angles(source: Vector3, dest: Vector3, angles: &Angles2) -> Angles2 {
+pub fn calculate_relative_angles(source: &Vector3, dest: &Vector3, angles: &Angles2) -> Angles2 {
     let delta = dest - source;
     let mut relative_angles = Angles2 {
         pitch: radians_to_deg(f32::atan2(-delta.z, f32::hypot(delta.x, delta.y))) - angles.pitch,
