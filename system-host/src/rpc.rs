@@ -5,6 +5,7 @@ use log::*;
 use tarpc::context::Context;
 use tarpc::server::{Handler, Serve};
 use tarpc::{client, server};
+use tokio::stream;
 
 #[derive(Clone)]
 struct SystemHandleServer;
@@ -37,13 +38,6 @@ pub async fn listen(address: &std::net::SocketAddr) -> std::io::Result<()> {
 }
 
 pub async fn listen_channel() -> Result<SystemHandleClient, Box<dyn std::error::Error>> {
-    // Start the server over a channel
-    use futures::future;
-    use tarpc::server;
-    use tarpc::server::*;
-    use tarpc::server::{Handler, Serve};
-    use tokio::stream;
-
     let (client_transport, server_transport) = tarpc::transport::channel::unbounded();
 
     let server = server::new(server::Config::default())

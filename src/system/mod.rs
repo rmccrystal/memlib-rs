@@ -1,5 +1,4 @@
 use log::*;
-use tarpc::client;
 
 mod functions;
 mod util;
