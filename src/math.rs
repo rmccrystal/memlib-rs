@@ -19,6 +19,10 @@ impl Vector3 {
     pub fn length(&self) -> f32 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
     }
+
+    pub fn dot(&self, other: &Self) -> f32 {
+        (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+    }
 }
 
 // Use a macro to implement operations
@@ -40,6 +44,39 @@ impl_op_ex!(- |a: &Vector3, b: &Vector3| -> Vector3 {
         }
 });
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct Vector2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Vector2 {
+    pub fn is_zero(&self) -> bool {
+        self.x == 0.0 && self.y == 0.0
+    }
+
+    pub fn length(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+
+// Use a macro to implement operations
+// https://docs.rs/crate/impl_ops/0.1.1
+
+impl_op_ex!(+ |a: &Vector2, b: &Vector2| -> Vector2 {
+        Vector2{
+            x: a.x + b.x,
+            y: a.y + b.y,
+        }
+});
+
+impl_op_ex!(- |a: &Vector2, b: &Vector2| -> Vector2 {
+        Vector2{
+            x: a.x - b.x,
+            y: a.y - b.y,
+        }
+});
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]

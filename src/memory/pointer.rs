@@ -8,6 +8,7 @@ use std::fmt;
 /// used in structs to represent pointers to a value
 /// Note that GLOBAL_HANDLE must be set with set_global_handle for this to read memory
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct Pointer<T> {
     pub address: Address,
     _marker: PhantomData<T>, // Store the type value (this doesn't change memory layout)
@@ -15,7 +16,7 @@ pub struct Pointer<T> {
 
 impl<T> Pointer<T> {
     /// Creates a new pointer at address `address` and using process handle `handle`
-    pub fn new<U>(address: Address) -> Pointer<T> {
+    pub fn new(address: Address) -> Pointer<T> {
         Pointer {
             address,
             _marker: PhantomData,
