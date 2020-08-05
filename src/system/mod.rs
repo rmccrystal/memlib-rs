@@ -7,6 +7,7 @@ use crate::system::util::run_async;
 pub use functions::*;
 
 pub use win_key_codes as keys;
+use tarpc::client;
 
 static mut CONNECTION: Option<system_host::SystemHandleClient> = None;
 
