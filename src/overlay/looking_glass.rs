@@ -4,6 +4,7 @@ use std::io;
 use std::io::{Write, Bytes};
 use std::os::unix::fs::OpenOptionsExt;
 use super::Color;
+use crate::overlay::OverlayInterface;
 
 pub struct LookingGlassOverlay {
     pipe: File,
@@ -58,7 +59,10 @@ impl LookingGlassOverlay {
         self.index += 1;
     }
 
-    pub fn draw_line(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color, width: i32) {
+}
+
+impl OverlayInterface for LookingGlassOverlay {
+    fn draw_line(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color, width: i32) {
         let buf = LgLine {
             _type: 1,
             idx: self.index,
@@ -72,7 +76,7 @@ impl LookingGlassOverlay {
         self.send_draw_command(&buf);
     }
 
-    pub fn draw_box(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color, thickness: i32) {
+    fn draw_box(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color, thickness: i32) {
         let buf = LgBox {
             _type: 2,
             idx: self.index,
@@ -87,7 +91,7 @@ impl LookingGlassOverlay {
         self.send_draw_command(&buf)
     }
 
-    pub fn draw_box_filled(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color) {
+    fn draw_box_filled(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color) {
         let buf = LgBox {
             _type: 2,
             idx: self.index,
@@ -102,7 +106,7 @@ impl LookingGlassOverlay {
         self.send_draw_command(&buf)
     }
 
-    pub fn draw_text(&mut self, origin: (i32, i32), text: String, color: Color, size: u8) {
+    fn draw_text(&mut self, origin: (i32, i32), text: String, color: Color, size: u8) {
         let text_slice = text.as_bytes();
 
         // Create buffer
