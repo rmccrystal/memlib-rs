@@ -1,16 +1,35 @@
 use overlay::Color;
+use overlay::OverlayInterface;
+use std::thread::sleep;
+use math::Vector2;
+use overlay::{TextStyle, Font};
 
-mod system;
-mod overlay;
+pub mod hacks;
+pub mod logger;
+pub mod math;
+pub mod memory;
+pub mod util;
+pub mod system;
+pub mod overlay;
+
+#[macro_use]
+pub mod macros;
 
 fn main() {
-    let mut overlay = crate::overlay::looking_glass::LookingGlassOverlay::new("/tmp/hax0r-data").unwrap();
-    let mut o = 0;
+    let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/overlay-pipe", 0).unwrap();
+    // let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/test", 0).unwrap();
+    println!("Created overlay");
     loop {
-        overlay.begin();
-        overlay.draw_text((10 + o, 10 + o * 2), "test".parse().unwrap(), Color::from_rgb(255, 0, 0), 100);
-        overlay.end();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        o += 1;
+        ov.begin();
+        ov.draw_text(
+            Vector2{x: 100.0, y: 200.0},
+            "hello".to_string(),
+            Color::from_rgb(255, 255, 255),
+            TextStyle::Shadow,
+            Font::Verdana,
+            0.0
+        );
+        ov.end();
+        sleep(std::time::Duration::from_millis(1000));
     }
 }

@@ -59,6 +59,10 @@ impl Vector2 {
     pub fn length(&self) -> f32 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
+
+    pub fn as_tuple(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
 }
 
 // Use a macro to implement operations

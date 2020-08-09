@@ -44,3 +44,14 @@ macro_rules! memory_setter {
         }
     };
 }
+
+/// Unwraps an option or returns from the function if none
+#[macro_export]
+macro_rules! unwrap_or_return {
+    ( $e:expr ) => {
+        match $e {
+            Some(x) => x,
+            None => return,
+        }
+    }
+}

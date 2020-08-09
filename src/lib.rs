@@ -8,6 +8,3 @@ pub mod overlay;
 
 #[macro_use]
 pub mod macros;
-
-// Re-export math package
-pub use nalgebra;

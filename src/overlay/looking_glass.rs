@@ -1,20 +1,24 @@
+use log::*;
 use std::path::Path;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{Write, Bytes};
 use std::os::unix::fs::OpenOptionsExt;
 use super::Color;
-use crate::overlay::OverlayInterface;
+use crate::overlay::{OverlayInterface, TextStyle};
+use std::collections::VecDeque;
+use super::commands::*;
+use crate::math::Vector2;
 
 pub struct LookingGlassOverlay {
     pipe: File,
-    index: u16,
-    largest_index: u16,
-    buf: Vec<u8>,
+    delay_buf: VecDeque<Command>,
+    frame: Frame,
+    delay: usize,       // if the overlay is faster than the screen, there should be a delay
 }
 
 impl LookingGlassOverlay {
-    pub fn new(path: impl AsRef<Path>) -> io::Result<Self> {
+    pub fn new(path: impl AsRef<Path>, delay: usize) -> io::Result<Self> {
         let pipe = OpenOptions::new()
             .write(true)
             .append(true)
@@ -23,124 +27,97 @@ impl LookingGlassOverlay {
 
         Ok(Self {
             pipe,
-            index: 0,
-            largest_index: 255,
-            buf: Vec::new(),
+            delay_buf: VecDeque::new(),
+            frame: Frame::new(),
+            delay,
         })
     }
 
-    pub fn begin(&mut self) {
-        self.buf.clear();
-    }
-
-    pub fn end(&mut self) {
-        // self.index - 1 is last index
-        for idx in self.index..self.largest_index {
-            self.write_buf(to_bytes(&LgNull { _type: 0, idx }));
+    /// internal function
+    fn _send_command(&mut self, command: Command) {
+        trace!("Sending command to looking glass: {:?}", command);
+        let buf = bincode::serialize(&command).expect("Failed to serialize command for looking-glass overlay");
+        if let Err(err) = self.pipe.write_all(buf.as_slice()) {
+            error!("Error sending to looking-glass pipe: {}", err);
         }
-        // Write the buffer
-        self.pipe.write_all(self.buf.as_slice()).expect("Failed to write to looking-glass named pipe");
-
-        // Update largest_index because we already flushed
-        self.largest_index = self.index;
-        self.index = 0;
     }
 
-    fn write_buf(&mut self, buf: &[u8]) {
-        self.buf.extend_from_slice(buf);
-    }
-
-    pub fn send_draw_command<T>(&mut self, command: &T) {
-        let bytes = to_bytes(command);
-        self.write_buf(&bytes);
-        if self.index > self.largest_index {
-            self.largest_index = self.index;
+    /// Sends a command with delay
+    fn send_command(&mut self, command: Command) {
+        if self.delay == 0 {
+            self._send_command(command);
+            return;
         }
-        self.index += 1;
+
+        // Add the buffer to the back of the delay_buf
+        self.delay_buf.push_back(command);
+
+        // If we should still add shit to the delay buffer
+        if self.delay_buf.len() < self.delay {
+            return;
+        }
+
+        let command = self.delay_buf.pop_front().expect("Error with delay_buf on looking-glass overlay");
+        self._send_command(command);
     }
 
+    fn add_draw_command(&mut self, draw_command: DrawCommand) {
+        self.frame.commands.push(draw_command);
+    }
 }
 
 impl OverlayInterface for LookingGlassOverlay {
-    fn draw_line(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color, width: i32) {
-        let buf = LgLine {
-            _type: 1,
-            idx: self.index,
-            x1: p1.0 as _,
-            y1: p1.1 as _,
-            x2: p2.0 as _,
-            y2: p2.1 as _,
-            color,
-            width: width as _,
-        };
-        self.send_draw_command(&buf);
+    fn begin(&mut self) {
+        self.frame.commands.clear();
     }
 
-    fn draw_box(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color, thickness: i32) {
-        let buf = LgBox {
-            _type: 2,
-            idx: self.index,
-            x1: p1.0 as _,
-            y1: p1.1 as _,
-            x2: p2.0 as _,
-            y2: p2.1 as _,
-            color,
-            thickness: thickness as _,
-            filled: false,
-        };
-        self.send_draw_command(&buf)
+    fn end(&mut self) {
+        self.send_command(Command::UpdateFrame(self.frame.clone()));
     }
 
-    fn draw_box_filled(&mut self, p1: (i32, i32), p2: (i32, i32), color: Color) {
-        let buf = LgBox {
-            _type: 2,
-            idx: self.index,
-            x1: p1.0 as _,
-            y1: p1.1 as _,
-            x2: p2.0 as _,
-            y2: p2.1 as _,
-            color,
-            thickness: 0 as _,
-            filled: true,
-        };
-        self.send_draw_command(&buf)
+    fn draw_line(&mut self, p1: Vector2, p2: Vector2, color: Color, width: f32) {
+        self.add_draw_command(DrawCommand::Line(LineData {
+            x1: p1.x,
+            y1: p1.y,
+            x2: p2.x,
+            y2: p2.y,
+            color: color.as_int(),
+            width
+        }))
     }
 
-    fn draw_text(&mut self, origin: (i32, i32), text: String, color: Color, size: u8) {
-        let text_slice = text.as_bytes();
+    fn draw_box(&mut self, p1: Vector2, p2: Vector2, color: Color, width: f32, rounding: f32, filled: bool) {
+        self.add_draw_command(DrawCommand::Box(BoxData {
+            x1: p1.x,
+            y1: p1.y,
+            x2: p2.x,
+            y2: p2.y,
+            color: color.as_int(),
+            rounding,
+            width,
+            filled
+        }))
+    }
 
-        // Create buffer
-        let mut text_buf: [u8; 128] = [0; 128];
-        for i in 0..128 {
-            match text_slice.get(i) {
-                Some(ch) => { text_buf[i] = *ch },
-                None => break
-            }
-        }
-
-        let buf = LgText {
-            _type: 3,
-            idx: self.index,
-            x: origin.0 as _,
-            y: origin.1 as _,
-            size,
-            color,
-            str: text_buf,
-        };
-
-        self.send_draw_command(&buf)
+    /// font_size = 0 for default size
+    fn draw_text(&mut self, origin: Vector2, text: &str, color: Color, style: TextStyle, font: super::Font, font_size: f32, centered: bool) {
+        self.add_draw_command(DrawCommand::Text(TextData {
+            x: origin.x,
+            y: origin.y,
+            text: text.to_string(),
+            color: color.as_int(),
+            font,
+            font_size,
+            centered,
+            style,
+        }))
     }
 }
 
 impl Drop for LookingGlassOverlay {
     fn drop(&mut self) {
-        dbg!("drop");
         self.end();
     }
-}
-
-fn to_bytes<T>(ptr: &T) -> &[u8] {
-    unsafe { std::slice::from_raw_parts(ptr as *const _ as *const u8, std::mem::size_of::<T>()) }
 }
 
 #[repr(C)]
@@ -186,5 +163,6 @@ struct LgText
     y: f32,
     size: u8,
     color: Color,
+    style: TextStyle,
     str: [u8; 128],
 }

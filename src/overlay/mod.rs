@@ -1,3 +1,6 @@
+mod commands;
+pub use commands::{Font, TextStyle};
+
 pub mod looking_glass;
 
 pub mod color;
