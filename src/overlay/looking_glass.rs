@@ -15,10 +15,11 @@ pub struct LookingGlassOverlay {
     delay_buf: VecDeque<Command>,
     frame: Frame,
     delay: usize,       // if the overlay is faster than the screen, there should be a delay
+    anti_aliasing: bool
 }
 
 impl LookingGlassOverlay {
-    pub fn new(path: impl AsRef<Path>, delay: usize) -> io::Result<Self> {
+    pub fn new(path: impl AsRef<Path>, anti_aliasing: bool, delay: usize) -> io::Result<Self> {
         let pipe = OpenOptions::new()
             .write(true)
             .append(true)
@@ -30,6 +31,7 @@ impl LookingGlassOverlay {
             delay_buf: VecDeque::new(),
             frame: Frame::new(),
             delay,
+            anti_aliasing
         })
     }
 
@@ -75,7 +77,11 @@ impl OverlayInterface for LookingGlassOverlay {
         self.send_command(Command::UpdateFrame(self.frame.clone()));
     }
 
-    fn draw_line(&mut self, p1: Vector2, p2: Vector2, color: Color, width: f32) {
+    fn draw_line(&mut self, mut p1: Vector2, mut p2: Vector2, color: Color, width: f32) {
+        // if !self.anti_aliasing {
+        //     p1 = p1.round();
+        //     p2 = p2.round();
+        // }
         self.add_draw_command(DrawCommand::Line(LineData {
             x1: p1.x,
             y1: p1.y,
@@ -86,7 +92,11 @@ impl OverlayInterface for LookingGlassOverlay {
         }))
     }
 
-    fn draw_box(&mut self, p1: Vector2, p2: Vector2, color: Color, width: f32, rounding: f32, filled: bool) {
+    fn draw_box(&mut self, mut p1: Vector2, mut p2: Vector2, color: Color, width: f32, rounding: f32, filled: bool) {
+        if !self.anti_aliasing {
+            p1 = p1.round();
+            p2 = p2.round();
+        }
         self.add_draw_command(DrawCommand::Box(BoxData {
             x1: p1.x,
             y1: p1.y,

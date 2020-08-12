@@ -2,6 +2,7 @@ use pretty_hex::*;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use log::*;
+use crate::math::Vector2;
 
 /// A timer which runs a loop at a consistent rate
 /// For example, in a game hack, we might want to run the main
@@ -60,4 +61,32 @@ impl LoopTimer {
 
 pub fn to_hex_string(buf: &[u8]) -> String {
     buf.hex_dump().to_string()
+}
+
+/// Gets a bounding box of a player. Takes a list of points on the screen (normally bones)
+/// and returns the smallest bounding box that includes all the points from bottom left to top right.
+/// Note that directions are right then down
+pub fn get_boudning_box(points: Vec<Vector2>) -> (Vector2, Vector2) {
+    let mut left: f32 = points[0].x;
+    let mut right: f32 = points[0].x;
+    let mut top: f32 = points[0].y;
+    let mut bottom: f32 = points[0].y;
+
+    for point in points {
+        if point.x < left {
+            left = point.x
+        }
+        if point.x > right {
+            right = point.x
+        }
+
+        if point.y < top {
+            top = point.y
+        }
+        if point.y > bottom {
+            bottom = point.y
+        }
+    }
+
+    (Vector2{x: left, y: bottom}, Vector2{x: right, y: top})
 }

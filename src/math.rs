@@ -63,6 +63,11 @@ impl Vector2 {
     pub fn as_tuple(&self) -> (f32, f32) {
         (self.x, self.y)
     }
+
+    // Rounds to the nearest whole number
+    pub fn round(&self) -> Self {
+        Self{x: self.x as i32 as f32, y: self.y as i32 as f32}
+    }
 }
 
 // Use a macro to implement operations

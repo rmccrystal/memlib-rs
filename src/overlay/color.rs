@@ -1,5 +1,5 @@
 /// An RGBA color
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color(u32);
 
 impl Color {
@@ -12,10 +12,9 @@ impl Color {
         self.0
     }
 
-    pub fn from_hsv(h: u8, s: u8, v: u8) -> Self {
-        let mut h = h as f32 *   2.0; // 0-360
-        let mut s = s as f32 / 255.0; // 0.0-1.0
-        let mut v = v as f32 / 255.0; // 0.0-1.0
+    pub fn from_hsv(mut h: f32, mut s: f32, mut v: f32) -> Self {
+        s /= 100.0;
+        v /= 100.0;
 
         let mut r = 0.0;
         let mut g = 0.0;
@@ -37,7 +36,7 @@ impl Color {
             _ => {}
         }
 
-        Self::from_rgb(r as u8 * 255, g as u8 * 255, b as u8 * 255)
+        Self::from_rgb((r * 255.0) as _, (g * 255.0) as _, (b * 255.0) as _)
     }
 
     pub fn from_hex(hex: u32) -> Self {
@@ -53,4 +52,14 @@ impl Color {
     pub fn from_rgb(r: u8, g: u8, b: u8) -> Self {
         Self::from_rgba(r, g, b, 255)
     }
+
+    pub fn opacity(&self, opacity: u8) -> Self {
+        Self((self.0 & 0x00FFFFFF) + ((opacity as u32) << 24))
+    }
+}
+
+#[test]
+fn asdf() {
+    println!("{:X}", Color::from_rgb(255, 0, 0).opacity(100).0);
+    assert_eq!(1, 2);
 }
