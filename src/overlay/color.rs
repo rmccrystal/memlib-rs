@@ -12,7 +12,7 @@ impl Color {
         self.0
     }
 
-    pub fn from_hsv(mut h: f32, mut s: f32, mut v: f32) -> Self {
+    pub fn from_hsv(h: f32, mut s: f32, mut v: f32) -> Self {
         s /= 100.0;
         v /= 100.0;
 

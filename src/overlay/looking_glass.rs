@@ -2,7 +2,7 @@ use log::*;
 use std::path::Path;
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::{Write, Bytes};
+use std::io::{Write};
 use std::os::unix::fs::OpenOptionsExt;
 use super::Color;
 use crate::overlay::{OverlayInterface, TextStyle};
@@ -77,7 +77,7 @@ impl OverlayInterface for LookingGlassOverlay {
         self.send_command(Command::UpdateFrame(self.frame.clone()));
     }
 
-    fn draw_line(&mut self, mut p1: Vector2, mut p2: Vector2, options: LineOptions) {
+    fn draw_line(&mut self, p1: Vector2, p2: Vector2, options: LineOptions) {
         // if !self.anti_aliasing {
         //     p1 = p1.round();
         //     p2 = p2.round();
@@ -123,51 +123,4 @@ impl Drop for LookingGlassOverlay {
     fn drop(&mut self) {
         self.end();
     }
-}
-
-#[repr(C)]
-struct LgNull
-{
-    _type: u8,
-    idx: u16,
-}
-
-#[repr(C)]
-struct LgLine
-{
-    _type: u8,
-    idx: u16,
-    x1: f32,
-    y1: f32,
-    x2: f32,
-    y2: f32,
-    color: Color,
-    width: f32,
-}
-
-#[repr(C)]
-struct LgBox
-{
-    _type: u8,
-    idx: u16,
-    x1: f32,
-    y1: f32,
-    x2: f32,
-    y2: f32,
-    color: Color,
-    thickness: f32,
-    filled: bool,
-}
-
-#[repr(C)]
-struct LgText
-{
-    _type: u8,
-    idx: u16,
-    x: f32,
-    y: f32,
-    size: u8,
-    color: Color,
-    style: TextStyle,
-    str: [u8; 128],
 }
