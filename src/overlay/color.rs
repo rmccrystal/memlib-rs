@@ -56,6 +56,10 @@ impl Color {
     pub fn opacity(&self, opacity: u8) -> Self {
         Self((self.0 & 0x00FFFFFF) + ((opacity as u32) << 24))
     }
+
+    pub fn get_opacity(&self) -> u8 {
+        ((self.0 & 0xFF000000) >> 24) as u8
+    }
 }
 
 #[test]
