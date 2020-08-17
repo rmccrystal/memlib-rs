@@ -23,7 +23,7 @@ impl LookingGlassOverlay {
         let pipe = OpenOptions::new()
             .write(true)
             .append(true)
-            .custom_flags(libc::O_NONBLOCK)
+            .custom_flags(2048) // libc::O_NONBLOCK
             .open(path)?;
 
         Ok(Self {
@@ -101,7 +101,6 @@ impl OverlayInterface for LookingGlassOverlay {
         })
     }
 
-    /// font_size = 0 for default size
     fn draw_text(&mut self, origin: Vector2, text: &str, options: TextOptions) {
         self.add_draw_command(DrawCommand::Text{
             origin: origin.as_tuple(),

@@ -16,18 +16,15 @@ pub mod overlay;
 pub mod macros;
 
 fn main() {
-    let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/overlay-pipe", 0).unwrap();
+    let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/overlay-pipe", true, 0).unwrap();
     // let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/test", 0).unwrap();
     println!("Created overlay");
     loop {
         ov.begin();
         ov.draw_text(
             Vector2{x: 100.0, y: 200.0},
-            "hello".to_string(),
-            Color::from_rgb(255, 255, 255),
-            TextStyle::Shadow,
-            Font::Verdana,
-            0.0
+            "hello",
+            Default::default()
         );
         ov.end();
         sleep(std::time::Duration::from_millis(1000));
