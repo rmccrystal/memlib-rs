@@ -22,32 +22,121 @@ impl Frame {
 /// Represents data that can be drawn to the screen
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DrawCommand {
-    Line(LineData),
-    Box(BoxData),
-    Text(TextData),
-    Circle(CircleData),
+    Line {
+        p1: Point,
+        p2: Point,
+        options: LineOptions
+    },
+    Box {
+        p1: Point,
+        p2: Point,
+        options: BoxOptions,
+    },
+    Text {
+        origin: Point,
+        text: String,
+        options: TextOptions,
+    },
+    Circle {
+        origin: Point,
+        radius: f32,
+        options: CircleOptions,
+    },
+}
+
+const DEFAULT_COLOR: u32 = 0xFFFFFFFF;
+
+pub type Point = (f32, f32);
+
+// Generate consuming setters with a macro
+macro_rules! generate_setter {
+    ($member_name:ident: $setter_type:ty) => {
+        pub fn $member_name(mut self, $member_name: $setter_type) -> Self {
+            self.$member_name = $member_name.into();
+            self
+        }
+    };
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct LineData {
-    pub x1: f32,
-    pub y1: f32,
-    pub x2: f32,
-    pub y2: f32,
+pub struct LineOptions {
     pub color: u32,
     pub width: f32,
 }
 
+impl Default for LineOptions {
+    fn default() -> Self {
+        LineOptions {
+            color: DEFAULT_COLOR,
+            width: 1.0
+        }
+    }
+}
+
+impl LineOptions {
+    generate_setter!(color: impl Into<u32>);
+    generate_setter!(width: f32);
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BoxData {
-    pub x1: f32,
-    pub y1: f32,
-    pub x2: f32,
-    pub y2: f32,
+pub struct BoxOptions {
     pub color: u32,
     pub rounding: f32,
     pub width: f32,
     pub filled: bool,
+}
+
+impl Default for BoxOptions {
+    fn default() -> Self {
+        Self {
+            color: DEFAULT_COLOR,
+            rounding: 0.0,
+            width: 1.0,
+            filled: false
+        }
+    }
+}
+
+impl BoxOptions {
+    generate_setter!(color: impl Into<u32>);
+    generate_setter!(rounding: f32);
+    generate_setter!(width: f32);
+    generate_setter!(filled: bool);
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TextOptions {
+    pub color: u32,
+    pub font: Font,
+    pub font_size: Option<f32>, // if this is none, the font size will be default
+    pub centered_horizontal: bool,
+    pub centered_vertical: bool,
+    pub style: TextStyle,
+    pub shadow_color: u32,
+}
+
+impl Default for TextOptions {
+    fn default() -> Self {
+        Self {
+            color: DEFAULT_COLOR,
+            font: Font::Verdana,
+            font_size: None,
+            centered_horizontal: false,
+            centered_vertical: false,
+            style: TextStyle::Shadow,
+            shadow_color: 0xAA000000
+        }
+    }
+}
+
+impl TextOptions {
+    generate_setter!(color: impl Into<u32>);
+    generate_setter!(font: Font);
+    generate_setter!(font_size: Option<f32>);
+    generate_setter!(centered_horizontal: bool);
+    generate_setter!(centered_vertical: bool);
+    generate_setter!(style: TextStyle);
+    generate_setter!(shadow_color: impl Into<u32>);
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -66,23 +155,24 @@ pub enum Font {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TextData {
-    pub x: f32,
-    pub y: f32,
-    pub text: String,
-    pub color: u32,
-    pub font: Font,
-    pub font_size: f32, // 0.0 for default font size
-    pub centered: bool,
-    pub style: TextStyle,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CircleData {
-    pub x: f32,
-    pub y: f32,
-    pub radius: f32,
+pub struct CircleOptions {
     pub color: u32,
     pub filled: bool,
     pub width: f32
+}
+
+impl Default for CircleOptions {
+    fn default() -> Self {
+        Self {
+            color: DEFAULT_COLOR,
+            filled: false,
+            width: 1.0
+        }
+    }
+}
+
+impl CircleOptions {
+    generate_setter!(color: impl Into<u32>);
+    generate_setter!(filled: bool);
+    generate_setter!(width: f32);
 }

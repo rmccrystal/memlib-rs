@@ -1,5 +1,5 @@
 mod commands;
-pub use commands::{Font, TextStyle};
+pub use commands::{Font, TextStyle, LineOptions, BoxOptions, TextOptions, CircleOptions};
 
 pub mod looking_glass;
 

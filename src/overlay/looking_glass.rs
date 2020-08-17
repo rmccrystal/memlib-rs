@@ -77,50 +77,45 @@ impl OverlayInterface for LookingGlassOverlay {
         self.send_command(Command::UpdateFrame(self.frame.clone()));
     }
 
-    fn draw_line(&mut self, mut p1: Vector2, mut p2: Vector2, color: Color, width: f32) {
+    fn draw_line(&mut self, mut p1: Vector2, mut p2: Vector2, options: LineOptions) {
         // if !self.anti_aliasing {
         //     p1 = p1.round();
         //     p2 = p2.round();
         // }
-        self.add_draw_command(DrawCommand::Line(LineData {
-            x1: p1.x,
-            y1: p1.y,
-            x2: p2.x,
-            y2: p2.y,
-            color: color.as_int(),
-            width
-        }))
+        self.add_draw_command(DrawCommand::Line{
+            p1: p1.as_tuple(),
+            p2: p2.as_tuple(),
+            options
+        })
     }
 
-    fn draw_box(&mut self, mut p1: Vector2, mut p2: Vector2, color: Color, width: f32, rounding: f32, filled: bool) {
+    fn draw_box(&mut self, mut p1: Vector2, mut p2: Vector2, options: BoxOptions) {
         if !self.anti_aliasing {
             p1 = p1.round();
             p2 = p2.round();
         }
-        self.add_draw_command(DrawCommand::Box(BoxData {
-            x1: p1.x,
-            y1: p1.y,
-            x2: p2.x,
-            y2: p2.y,
-            color: color.as_int(),
-            rounding,
-            width,
-            filled
-        }))
+        self.add_draw_command(DrawCommand::Box{
+            p1: p1.as_tuple(),
+            p2: p2.as_tuple(),
+            options
+        })
     }
 
     /// font_size = 0 for default size
-    fn draw_text(&mut self, origin: Vector2, text: &str, color: Color, style: TextStyle, font: super::Font, font_size: f32, centered: bool) {
-        self.add_draw_command(DrawCommand::Text(TextData {
-            x: origin.x,
-            y: origin.y,
+    fn draw_text(&mut self, origin: Vector2, text: &str, options: TextOptions) {
+        self.add_draw_command(DrawCommand::Text{
+            origin: origin.as_tuple(),
             text: text.to_string(),
-            color: color.as_int(),
-            font,
-            font_size,
-            centered,
-            style,
-        }))
+            options
+        })
+    }
+    
+    fn draw_circle(&mut self, origin: Vector2, radius: f32, options: CircleOptions) {
+        self.add_draw_command(DrawCommand::Circle {
+            origin: origin.as_tuple(),
+            radius,
+            options
+        })
     }
 }
 
