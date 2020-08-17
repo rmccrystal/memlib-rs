@@ -62,6 +62,18 @@ impl Color {
     }
 }
 
+impl From<Color> for u32 {
+    fn from(color: Color) -> Self {
+        color.0
+    }
+}
+
+impl From<u32> for Color {
+    fn from(val: u32) -> Self {
+        Color::new(val)
+    }
+}
+
 #[test]
 fn asdf() {
     println!("{:X}", Color::from_rgb(255, 0, 0).opacity(100).0);
