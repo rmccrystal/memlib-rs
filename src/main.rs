@@ -1,8 +1,8 @@
-use overlay::Color;
+
 use overlay::OverlayInterface;
 use std::thread::sleep;
 use math::Vector2;
-use overlay::{TextStyle, Font};
+
 
 pub mod hacks;
 pub mod logger;

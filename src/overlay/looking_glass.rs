@@ -4,8 +4,8 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{Write};
 use std::os::unix::fs::OpenOptionsExt;
-use super::Color;
-use crate::overlay::{OverlayInterface, TextStyle};
+
+use crate::overlay::{OverlayInterface};
 use std::collections::VecDeque;
 use super::commands::*;
 use crate::math::Vector2;
