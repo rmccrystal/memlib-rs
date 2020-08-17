@@ -102,6 +102,12 @@ pub fn new_interactive_scan<T>(address_range: (Address, Address), fast_scan: boo
             "decreased" => ScanValue::Decreased::<T>,
             "static" => ScanValue::Static::<T>,
             "changed" => ScanValue::Changed::<T>,
+            "print" => {
+                for scan_match in &memory_scan.matches {
+                    println!("\t{} at 0x{:X} (offset 0x{:X})", scan_match.1, scan_match.0, scan_match.0 - address_range.0)
+                }
+                continue;
+            },
             value => {
                 let input = value.parse::<T>();
 
@@ -114,7 +120,7 @@ pub fn new_interactive_scan<T>(address_range: (Address, Address), fast_scan: boo
                             std::any::type_name::<T>()
                         );
                         continue;
-                    },
+                    }
                     Ok(val) => {
                         ScanValue::Value(val)
                     }
