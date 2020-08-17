@@ -130,7 +130,13 @@ impl Default for TextOptions {
 }
 
 impl TextOptions {
-    generate_setter!(color: impl Into<u32>);
+    pub fn color(mut self, color: impl Into<u32>) -> Self {
+        self.color = color.into();
+        // set the opacity to the same opacity as color
+        let opacity = ((self.color & 0xFF000000) >> 24) as u8;
+        self.shadow_color = (self.shadow_color & 0x00FFFFFF) + ((opacity as u32) << 24);
+        self
+    }
     generate_setter!(font: Font);
     generate_setter!(font_size: Option<f32>);
     generate_setter!(centered_horizontal: bool);
