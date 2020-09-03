@@ -12,8 +12,6 @@ use winapi::um::tlhelp32::{
     MODULEENTRY32, PROCESSENTRY32, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS,
 };
 
-
-
 use std::mem;
 
 use winapi::um::errhandlingapi::GetLastError;
@@ -37,52 +35,30 @@ impl WinAPIProcessHandle {
     pub fn attach<'a>(process_name: impl ToString) -> Result<Box<dyn ProcessHandleInterface + 'a>> {
         let process_name = process_name.to_string();
 
-        // https://stackoverflow.com/a/865201/11639049
-        // Create an empty PROCESSENTRY32 struct
-        let mut entry: PROCESSENTRY32 = unsafe { mem::zeroed() };
-        entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
+        let pid = get_pid_by_name(&process_name)
+            .ok_or(format!("Could not find process {}", process_name))?;
 
-        // Take a snapshot of every process
-        let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+        // Create a HANDLE
+        let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID) };
 
         unsafe {
-            // TODO: This doesn't include the first process
-            // TODO: This doesn't have error handling for Process32First/Next. use GetLastError
-            if Process32First(snapshot, &mut entry) == 1 {
-                while Process32Next(snapshot, &mut entry) == 1 {
-                    // Construct the process name from the bytes in the szExeFile array
-                    let current_process_name = c_char_array_to_string(entry.szExeFile.to_vec());
+            if process_handle == NULL {
+                let error_code = GetLastError();
+                let message = error_code_to_message(error_code).unwrap_or("".parse().unwrap());
 
-                    // Compare the szExeFile element to the process name in lowercase
-                    if current_process_name.to_lowercase() == process_name.to_lowercase() {
-                        // If we get here, we have our process
-                        // Create a HANDLE
-                        let process_handle =
-                            OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID);
-
-                        if process_handle == NULL {
-                            let error_code = GetLastError();
-                            let message =
-                                error_code_to_message(error_code).unwrap_or("".parse().unwrap());
-
-                            return Err(format!(
-                                "Failed to open process {}: {} (0x{:x})",
-                                current_process_name, message, error_code
-                            )
-                            .into());
-                        }
-
-                        return Ok(Box::new(WinAPIProcessHandle {
-                            process_handle,
-                            pid: entry.th32ProcessID,
-                            process_name,
-                        }));
-                    }
-                }
+                return Err(format!(
+                    "Failed to open process {}: {} (0x{:x})",
+                    process_name, message, error_code
+                )
+                .into());
             }
-        };
+        }
 
-        Err(format!("Process {} was not found", process_name).into())
+        Ok(Box::new(WinAPIProcessHandle {
+            process_handle,
+            pid,
+            process_name,
+        }))
     }
 }
 
@@ -199,6 +175,35 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
             peb_base_address: 0, // Not implemented
         }
     }
+}
+
+pub(crate) fn get_pid_by_name(name: &str) -> Option<u32> {
+    // https://stackoverflow.com/a/865201/11639049
+    // Create an empty PROCESSENTRY32 struct
+    let mut entry: PROCESSENTRY32 = unsafe { mem::zeroed() };
+    entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
+
+    // Take a snapshot of every process
+    let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+
+    unsafe {
+        // TODO: This doesn't include the first process
+        // TODO: This doesn't have error handling for Process32First/Next. use GetLastError
+        if Process32First(snapshot, &mut entry) == 1 {
+            while Process32Next(snapshot, &mut entry) == 1 {
+                // Construct the process name from the bytes in the szExeFile array
+                let current_process_name = c_char_array_to_string(entry.szExeFile.to_vec());
+
+                // Compare the szExeFile element to the process name in lowercase
+                if current_process_name.to_lowercase() == name.to_lowercase() {
+                    // If we get here, we have our process
+                    return Some(entry.th32ProcessID);
+                }
+            }
+        }
+    };
+
+    None
 }
 
 /// Converts a Windows error code to its corresponding message.
