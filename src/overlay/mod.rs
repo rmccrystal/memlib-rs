@@ -1,6 +1,7 @@
 mod commands;
-pub use commands::{Font, TextStyle, LineOptions, BoxOptions, TextOptions, CircleOptions};
+pub use commands::{BoxOptions, CircleOptions, Font, LineOptions, TextOptions, TextStyle};
 
+#[cfg(target_os = "linux")]
 pub mod looking_glass;
 
 pub mod color;

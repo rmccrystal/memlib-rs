@@ -32,14 +32,14 @@ pub struct WinAPIProcessHandle {
 impl WinAPIProcessHandle {
     /// Attaches to a process using OpenProcess and implements the ProcessHandle
     /// trait using ReadProcessMemory and WriteProcessMemory
-    pub fn attach<'a>(process_name: impl ToString) -> Result<Box<dyn ProcessHandleInterface + 'a>> {
+    pub fn attach<'a>(process_name: impl ToString) -> Result<Self> {
         let process_name = process_name.to_string();
 
         let pid = get_pid_by_name(&process_name)
             .ok_or(format!("Could not find process {}", process_name))?;
 
         // Create a HANDLE
-        let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID) };
+        let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
 
         unsafe {
             if process_handle == NULL {
@@ -54,11 +54,11 @@ impl WinAPIProcessHandle {
             }
         }
 
-        Ok(Box::new(WinAPIProcessHandle {
+        Ok(WinAPIProcessHandle {
             process_handle,
             pid,
             process_name,
-        }))
+        })
     }
 }
 

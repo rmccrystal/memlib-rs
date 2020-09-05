@@ -1,32 +1,31 @@
-
+use log::LevelFilter;
+use math::Vector2;
+use memlib::util::to_hex_string;
+use memory::handle_interfaces::driver_handle::DriverProcessHandle;
+use memory::handle_interfaces::winapi_handle::WinAPIProcessHandle;
+use memory::{Handle, ProcessHandleInterface};
 use overlay::OverlayInterface;
 use std::thread::sleep;
-use math::Vector2;
-
 
 pub mod hacks;
 pub mod logger;
 pub mod math;
 pub mod memory;
-pub mod util;
-pub mod system;
 pub mod overlay;
+pub mod system;
+pub mod util;
 
 #[macro_use]
 pub mod macros;
 
 fn main() {
-    let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/overlay-pipe", true, 0).unwrap();
-    // let mut ov = overlay::looking_glass::LookingGlassOverlay::new("/tmp/test", 0).unwrap();
-    println!("Created overlay");
-    loop {
-        ov.begin();
-        ov.draw_text(
-            Vector2{x: 100.0, y: 200.0},
-            "hello",
-            Default::default()
-        );
-        ov.end();
-        sleep(std::time::Duration::from_millis(1000));
-    }
+    logger::MinimalLogger::init(LevelFilter::Trace);
+
+    let handle = DriverProcessHandle::attach("csgo.exe").unwrap();
+    // let handle = WinAPIProcessHandle::attach("notepad.exe").unwrap();
+    let handle = Handle::from_boxed_interface(Box::new(handle));
+
+    let bytes = to_hex_string(&handle.read_bytes(0x22459cce0c0, 20).unwrap());
+
+    dbg!(bytes);
 }

@@ -2,6 +2,6 @@
 pub mod kvm_handle;
 
 #[cfg(target_os = "windows")]
-mod driver_handle;
+pub mod driver_handle;
 #[cfg(target_os = "windows")]
 pub mod winapi_handle;

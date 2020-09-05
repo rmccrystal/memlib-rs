@@ -7,15 +7,15 @@ use std::slice;
 
 mod findpattern;
 mod global_handle;
-mod handle_interfaces;
+pub mod handle_interfaces;
 mod pointer;
 
 pub mod scan;
 
 pub use findpattern::find_pattern;
 pub use global_handle::*;
-pub use scan::*;
 pub use pointer::*;
+pub use scan::*;
 
 use handle_interfaces::*;
 use std::borrow::Borrow;
@@ -66,7 +66,7 @@ pub struct Handle {
 
 impl Handle {
     /// Creates a new Handle using the intrinsic process handle interface and the process name
-    pub fn from_interface(interface: Box<dyn ProcessHandleInterface>) -> Handle {
+    pub fn from_boxed_interface(interface: Box<dyn ProcessHandleInterface>) -> Handle {
         Handle { interface }
     }
 
@@ -78,9 +78,9 @@ impl Handle {
     /// with a KVM, a KVm handle would be created
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
-        Ok(Self::from_interface(kvm_handle::KVMProcessHandle::attach(
-            &process_name,
-        )?))
+        Ok(Self::from_boxed_interface(
+            kvm_handle::KVMProcessHandle::attach(&process_name)?,
+        ))
     }
 
     #[cfg(target_os = "windows")]
@@ -92,9 +92,9 @@ impl Handle {
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
         info!("Creating a process handle to {}", process_name);
-        Ok(Self::from_interface(
+        Ok(Self::from_boxed_interface(Box::new(
             winapi_handle::WinAPIProcessHandle::attach(&process_name)?,
-        ))
+        )))
     }
 
     /// Reads memory of type T from a process. If it is successful,
