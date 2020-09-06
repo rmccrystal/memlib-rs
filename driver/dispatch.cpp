@@ -35,6 +35,12 @@ void dispatch::handler(void* req_ptr)
 	case kernel_request_type::GetModule:
 	{
 		auto module_req = (get_module*)req->buf;
+
+		if (module_req->module_name == 0) {
+			req->status = 1;
+			return;
+		}
+
 		PEPROCESS target_process = NULL;
 		req->status = PsLookupProcessByProcessId((HANDLE)module_req->pid, &target_process);
 		if (NT_SUCCESS(req->status))
@@ -72,6 +78,17 @@ void dispatch::handler(void* req_ptr)
 			module_req->module_size = info.size;
 		}
 		break;
+	}
+	case kernel_request_type::GetPebBase:
+	{
+		auto peb_request = (get_peb_base*)req->buf;
+
+		PEPROCESS target_process = NULL;
+		req->status = PsLookupProcessByProcessId((HANDLE)peb_request->pid, &target_process);
+		if (NT_SUCCESS(req->status))
+		{
+			peb_request->peb_base = (UINT64)PsGetProcessPeb(target_process);
+		}
 	}
 	default:
 		DbgPrintEx(0, 0, "Invalid request type %d", req->request_type);

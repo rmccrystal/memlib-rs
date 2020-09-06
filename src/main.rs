@@ -21,9 +21,10 @@ pub mod macros;
 fn main() {
     logger::MinimalLogger::init(LevelFilter::Trace);
 
-    let handle = WinAPIProcessHandle::attach("notepad.exe").unwrap();
+    let handle = DriverProcessHandle::attach("obs64.exe").unwrap();
     // let handle = WinAPIProcessHandle::attach("notepad.exe").unwrap();
     let handle = Handle::from_boxed_interface(Box::new(handle));
 
-    dbg!(handle.get_module("notepad.exe"));
+    dbg!(handle.get_module("obs64.exe"));
+    println!("{:X}", handle.get_process_info().peb_base_address);
 }

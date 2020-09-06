@@ -52,6 +52,7 @@ pub trait ProcessHandleInterface {
     fn get_process_info(&self) -> ProcessInfo;
 }
 
+#[derive(Clone, Debug)]
 pub struct ProcessInfo {
     /// The base address of the PEB. Needed in some games
     pub peb_base_address: u64,

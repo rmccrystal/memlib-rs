@@ -19,6 +19,7 @@ const HOOKED_FN_NAME: &str = "NtQueryCompositionSurfaceStatistics";
 pub struct DriverProcessHandle {
     hook: extern "stdcall" fn(*mut c_void),
     pid: u32,
+    process_name: String,
 }
 
 /// Basically a line by line translation of
@@ -53,7 +54,11 @@ impl DriverProcessHandle {
             );
         }
 
-        Ok(Self { pid, hook })
+        Ok(Self {
+            pid,
+            hook,
+            process_name,
+        })
     }
 }
 
@@ -140,6 +145,26 @@ impl ProcessHandleInterface for DriverProcessHandle {
     }
 
     fn get_process_info(&self) -> ProcessInfo {
-        unimplemented!()
+        let peb_base_address = {
+            let mut req: GetPebBase = unsafe { std::mem::zeroed() };
+
+            req.pid = self.pid;
+
+            let status = self.send_request(KernelRequestType::GetPebBase, &mut req);
+
+            if status != 0 {
+                panic!(format!(
+                    "Sending GetModule request failed with error 0x{:X}",
+                    status
+                ));
+            }
+
+            req.peb_base
+        };
+
+        ProcessInfo {
+            process_name: self.process_name.clone(),
+            peb_base_address,
+        }
     }
 }
