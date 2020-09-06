@@ -208,7 +208,7 @@ pub(crate) fn get_pid_by_name(name: &str) -> Option<u32> {
 
 /// Converts a Windows error code to its corresponding message.
 /// If there is no message associated with the code, this will return None
-fn error_code_to_message(code: u32) -> Option<String> {
+pub(crate) fn error_code_to_message(code: u32) -> Option<String> {
     let mut message_buf: [i8; 512] = [0; 512];
 
     // Get the error string by the code

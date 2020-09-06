@@ -261,6 +261,7 @@ impl Handle {
 }
 
 /// Defines information about a module
+#[derive(Clone, Debug)]
 pub struct Module {
     /// The image base address
     pub base_address: Address,

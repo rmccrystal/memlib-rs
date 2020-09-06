@@ -1,27 +1,18 @@
 use super::super::*;
 use super::winapi_handle::get_pid_by_name;
 use log::*;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, OsStr, OsString};
 use std::time::Instant;
 use tarpc::Request;
 use winapi::ctypes::c_void;
 use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress, LoadLibraryA};
 
-const CODE_CLIENT_REQUEST: u32 = 0x1;
-const CODE_READ_MEMORY: u32 = 0x2;
-const CODE_WRITE_MEMORY: u32 = 0x3;
+mod driver;
+mod types;
 
-/// Contains request and response data from the kernel
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-struct KernelRequest {
-    code: u32,
-    pid: u32,
-    client_base: u32,
-    address: u32,
-    buffer_addr: u64,
-    size: u32,
-}
+use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
+use types::*;
+use winapi::um::winbase::AddAtomA;
 
 const HOOKED_FN_NAME: &str = "NtQueryCompositionSurfaceStatistics";
 
@@ -64,26 +55,6 @@ impl DriverProcessHandle {
 
         Ok(Self { pid, hook })
     }
-
-    unsafe fn get_hook() -> Result<extern "stdcall" fn(*mut c_void)> {
-        let addr = GetProcAddress(
-            GetModuleHandleA(CString::new("win32u.dll")?.as_ptr()),
-            CString::new(HOOKED_FN_NAME)?.as_ptr(),
-        );
-        Ok(std::mem::transmute(
-            addr.as_mut()
-                .ok_or(format!("Could not find {}", HOOKED_FN_NAME))?,
-        ))
-    }
-
-    fn call_hook(&self, req: &mut KernelRequest) {
-        unsafe {
-            trace!("Calling hook with request {:?} ({:p})", req, req);
-            let func = self.hook;
-            func(req as *mut KernelRequest as _);
-            trace!("Received response {:?}", req);
-        }
-    }
 }
 
 impl ProcessHandleInterface for DriverProcessHandle {
@@ -99,26 +70,73 @@ impl ProcessHandleInterface for DriverProcessHandle {
             );
 
             // Create the request
-            let mut req: KernelRequest = std::mem::zeroed();
+            let mut req: ReadMemory = std::mem::zeroed();
 
-            req.code = CODE_READ_MEMORY;
-            req.pid = self.pid as _;
-            req.address = address as _;
             req.size = size as _;
-            req.buffer_addr = buf.as_mut_ptr() as _;
+            req.address = address as _;
+            req.pid = self.pid;
+            req.read_buffer = buf.as_mut_ptr();
 
-            self.call_hook(&mut req);
+            let status = self.send_request(KernelRequestType::ReadMemory, &mut req);
+
+            if status != 0 {
+                return Err(format!(
+                    "Sending WriteRequest failed with error {} (0x{:X})",
+                    error_code_to_message(status).unwrap_or_else(|| "".into()),
+                    status
+                )
+                .into());
+            }
 
             Ok(buf.into_boxed_slice())
         }
     }
 
     fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
-        unimplemented!()
+        let mut req: WriteMemory = unsafe { std::mem::zeroed() };
+
+        req.pid = self.pid;
+        req.address = address as _;
+        req.size = bytes.len() as _;
+        req.write_buffer = bytes.as_ptr();
+
+        let status = self.send_request(KernelRequestType::WriteMemory, &mut req);
+
+        if status != 0 {
+            return Err(format!("Sending WriteRequest failed with error 0x{:X}", status).into());
+        }
+
+        Ok(())
     }
 
     fn get_module(&self, module_name: &String) -> Option<Module> {
-        unimplemented!()
+        let mut req: GetModule = unsafe { std::mem::zeroed() };
+
+        let mut module_name_ptr: Vec<u16> = module_name.encode_utf16().collect();
+        module_name_ptr.push(0);
+
+        req.pid = self.pid;
+        req.module_name_pointer = module_name_ptr.as_ptr();
+        req.is_64_bit = (std::mem::size_of::<Address>() == std::mem::size_of::<u64>()) as _;
+
+        let status = self.send_request(KernelRequestType::GetModule, &mut req);
+
+        if status != 0 {
+            panic!(format!(
+                "Sending GetModule request failed with error 0x{:X}",
+                status
+            ));
+        }
+
+        if req.module_base == 0 {
+            None
+        } else {
+            Some(Module {
+                base_address: req.module_base as _,
+                size: req.module_size as _,
+                name: module_name.clone(),
+            })
+        }
     }
 
     fn get_process_info(&self) -> ProcessInfo {

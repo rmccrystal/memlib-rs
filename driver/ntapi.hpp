@@ -51,3 +51,10 @@ ZwProtectVirtualMemory(
   IN OUT PULONG           NumberOfBytesToProtect,
   IN ULONG                NewAccessProtection,
   OUT PULONG              OldAccessProtection );
+
+extern "C"
+NTKERNELAPI
+PPEB
+PsGetProcessPeb(
+	IN PEPROCESS Process
+);

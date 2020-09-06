@@ -2,16 +2,49 @@
 
 #include "ntapi.hpp"
 
-#define CODE_CLIENT_REQUEST 0x1
-#define CODE_READ_MEMORY 0x2
-#define CODE_WRITE_MEMORY 0x3
+namespace request_types {
+	enum kernel_request_type : UINT8 {
+		ReadMemory = 1,
+		WriteMemory,
+		GetModule,
+		GetPebBase,
+	};
 
-typedef struct _INFO_STRUCT
-{
-	ULONG code;
-	ULONG process_id;
-	ULONG client_base;
-	ULONG address;
-	ULONG64 buffer_addr;
-	ULONG size;
-}INFO_STRUCT, * PINFO_STRUCT;
+	struct kernel_request
+	{
+		kernel_request_type request_type;
+		PVOID buf;
+		NTSTATUS status;
+	};
+
+	struct read_memory
+	{
+		UINT32 pid;
+		UINT64 address;
+		UINT64 size;
+		PVOID read_buffer;
+	};
+
+	struct write_memory
+	{
+		UINT32 pid;
+		UINT64 address;
+		UINT64 size;
+		PVOID write_buffer;
+	};
+
+	struct get_module
+	{
+		UINT32 pid;
+		BOOL   is_64_bit;
+		LPCWSTR module_name;
+		UINT64 module_base;
+		UINT64 module_size;
+	};
+
+	struct get_peb_base
+	{
+		UINT32 pid;
+		UINT64 peb_base;
+	};
+}
