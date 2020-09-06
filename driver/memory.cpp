@@ -106,11 +106,11 @@ NTSTATUS memory::read_memory(PEPROCESS target_process, void* source, void* targe
 	if (!target_process) { return STATUS_INVALID_PARAMETER; }
 
 	SIZE_T bytes = 0;
-	DbgPrintEx(0, 0, "Reading %d bytes of memory into %p\n", bytes, target);
+	//-DbgPrintEx(0, 0, "Reading %d bytes of memory into %p\n", bytes, target);
 	NTSTATUS status = MmCopyVirtualMemory(target_process, source, IoGetCurrentProcess(), target, size, KernelMode, &bytes);
 	if (!NT_SUCCESS(status) || !bytes)
 	{
-		DbgPrintEx(0, 0, "Not successful (%d bytes read, status %lx)\n", bytes, status);
+		//-DbgPrintEx(0, 0, "Not successful (%d bytes read, status %lx)\n", bytes, status);
 		return STATUS_INVALID_ADDRESS;
 	}
 

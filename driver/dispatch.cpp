@@ -3,7 +3,7 @@
 void dispatch::handler(void* req_ptr)
 {
 	using namespace request_types;
-	DbgPrintEx(0, 0, "Hook was called with info struct %p\n", req_ptr);
+	//-DbgPrintEx(0, 0, "Hook was called with info struct %p\n", req_ptr);
 	auto req = (kernel_request*)req_ptr;
 
 	switch (req->request_type)
@@ -11,13 +11,13 @@ void dispatch::handler(void* req_ptr)
 	case kernel_request_type::ReadMemory:
 	{
 		auto read_req = (read_memory*)req->buf;
-		DbgPrintEx(0, 0, "Reading %ull bytes of memory from PID %ul\n", read_req->size, read_req->pid);
+		//-DbgPrintEx(0, 0, "Reading %ull bytes of memory from PID %ul\n", read_req->size, read_req->pid);
 		PEPROCESS target_process = NULL;
 		req->status = PsLookupProcessByProcessId((HANDLE)read_req->pid, &target_process);
 		if (NT_SUCCESS(req->status))
 		{
 			req->status = memory::read_memory(target_process, (void*)read_req->address, (void*) read_req->read_buffer, read_req->size);
-			DbgPrintEx(0, 0, "Read %d bytes of memory into buffer %p from PID %d\n", read_req->size, (void*) read_req->read_buffer, read_req->pid);
+			//-DbgPrintEx(0, 0, "Read %d bytes of memory into buffer %p from PID %d\n", read_req->size, (void*) read_req->read_buffer, read_req->pid);
 		}
 		break;
 	}
@@ -58,7 +58,7 @@ void dispatch::handler(void* req_ptr)
 
 			auto is_64_bit = module_req->is_64_bit;
 				
-			DbgPrintEx(0, 0, "Module_name: %S, len: %zu\n", module_name, len);
+			//-DbgPrintEx(0, 0, "Module_name: %S, len: %zu\n", module_name, len);
 			KAPC_STATE apc;
 			KeStackAttachProcess(target_process, &apc);
 			memory::module_info info = memory::module_info{ 0 };
@@ -91,7 +91,7 @@ void dispatch::handler(void* req_ptr)
 		}
 	}
 	default:
-		DbgPrintEx(0, 0, "Invalid request type %d", req->request_type);
+		//-DbgPrintEx(0, 0, "Invalid request type %d", req->request_type);
 		break;
 	}
 

@@ -21,7 +21,7 @@ bool hook::init_hook(void* kernel_address)
 
 	helper::wpm_safe(function, &original_fn, sizeof(original_fn));
 
-	DbgPrintEx(0, 0, "Initalized hook\n");
+	//-DbgPrintEx(0, 0, "Initalized hook\n");
 	
 	return true;
 }
