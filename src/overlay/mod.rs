@@ -7,5 +7,7 @@ pub mod looking_glass;
 pub mod color;
 pub use color::Color;
 
+pub mod null_overlay;
 mod overlay;
+
 pub use overlay::*;
