@@ -38,7 +38,7 @@ impl DriverProcessHandle {
                 return Err("win32u.dll failed to load".into());
             }
 
-            debug!("Loaded user32.dll and win32u.dll");
+            trace!("Loaded user32.dll and win32u.dll");
 
             pid =
                 get_pid_by_name(&process_name).ok_or(format!("Could not find {}", process_name))?;
