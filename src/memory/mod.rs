@@ -101,20 +101,27 @@ impl Handle {
     /// Reads memory of type T from a process. If it is successful,
     /// it will return the bytes read as type T. Otherwise, it will panic.
     pub fn read_memory<T>(&self, address: Address) -> T {
+        // self.try_read_memory(address)
+        //     .expect(&format!("Error reading {:#X} from process", address))
+        let result = self.try_read_memory(address);
+        result.expect(&format!("Error reading {:#X} from process", address))
+    }
+
+    /// Attempts to read memory of type T from a process. If unsucessful,
+    /// the error will be returned
+    pub fn try_read_memory<T>(&self, address: Address) -> Result<T> {
         // Get size of the type
         let size = mem::size_of::<T>();
 
-        let bytes = self
-            .interface
-            .read_bytes(address, size)
-            .expect("Error reading bytes from process");
+        let bytes = self.interface.read_bytes(address, size)?;
+
         // Convert the raw bytes into the type we need to return
         let value = unsafe {
             // We do this by casting the pointer to the bytes as a pointer to T
-            ptr::read(bytes.as_ptr() as *const _)
+            ptr::read(bytes.as_ptr() as *const T)
         };
 
-        value
+        Ok(value)
     }
 
     /// Writes memory of type T to a process. If it is successful,

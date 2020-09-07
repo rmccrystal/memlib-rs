@@ -88,6 +88,7 @@ memory::module_info memory::get_module_info_64(PEPROCESS target_process, LPCWSTR
 				CONTAINING_RECORD(list, LDR_DATA_TABLE_ENTRY, InLoadOrderModuleList);
 
 			auto len = min(wcslen(module_name), pEntry->BaseDllName.Length);
+			//-DbgPrintEx(0, 0, "Found: %wZ, len %u, module_name: %S\n", pEntry->BaseDllName, len, module_name);
 			if (!wcsncmp(pEntry->BaseDllName.Buffer, module_name, len))
 			{
 				ULONG64 baseAddr = (ULONG64)pEntry->DllBase;

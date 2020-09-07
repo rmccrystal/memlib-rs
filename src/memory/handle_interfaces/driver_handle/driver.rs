@@ -18,10 +18,10 @@ impl DriverProcessHandle {
 
     pub(crate) fn call_hook(&self, req: &mut KernelRequest) {
         unsafe {
-            trace!("Calling hook with request {:?} ({:p})", req, req);
+            // trace!("Calling hook with request {:?} ({:p})", req, req);
             let func = self.hook;
             func(req as *mut KernelRequest as _);
-            trace!("Received response {:?}", req);
+            // trace!("Received response {:?}", req);
         }
     }
 
@@ -35,12 +35,15 @@ impl DriverProcessHandle {
             req_buf: req as *mut T as _,
             status: 0xDEADBEEF,
         };
-        trace!("Sending request to kernel: {:?}", req);
+        // trace!("Sending request to kernel: {:?}", req);
         self.call_hook(&mut kernel_request);
-        trace!("Received response from kernel: {:?}", req);
+        // trace!("Received response from kernel: {:?}", req);
 
         if kernel_request.status == 0xDEADBEEF {
             error!("Driver write request status was not updated");
+        }
+        if kernel_request.status == 420 {
+            error!("Fatal exception in driver");
         }
 
         kernel_request.status

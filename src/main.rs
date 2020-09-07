@@ -21,8 +21,8 @@ pub mod macros;
 fn main() {
     logger::MinimalLogger::init(LevelFilter::Trace);
 
-    let handle = DriverProcessHandle::attach("notepad.exe").unwrap();
+    let handle = DriverProcessHandle::attach("firefox.exe").unwrap();
     let handle = Handle::from_boxed_interface(Box::new(handle));
 
-    dbg!(handle.read_memory::<i32>(0x100));
+    dbg!(handle.get_module("firefox.exe"));
 }

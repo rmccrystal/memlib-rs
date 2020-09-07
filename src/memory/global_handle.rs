@@ -7,8 +7,6 @@ use super::Handle;
 use super::{Address, Module, ProcessInfo, Result};
 use log::*;
 
-
-
 /// The global handle object
 static mut GLOBAL_HANDLE: Option<Handle> = None;
 
@@ -42,6 +40,12 @@ pub fn set_global_handle(handle: Handle) {
 /// it will return the bytes read as type T. Otherwise, it will panic.
 pub fn read_memory<T>(address: Address) -> T {
     get_global_handle().read_memory(address)
+}
+
+/// Attempts to read memory of type T from a process. If unsucessful,
+/// the error will be returned
+pub fn try_read_memory<T>(address: Address) -> Result<T> {
+    get_global_handle().try_read_memory(address)
 }
 
 /// Writes memory of type T to a process. If it is successful,

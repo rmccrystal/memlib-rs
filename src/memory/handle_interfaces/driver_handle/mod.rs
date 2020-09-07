@@ -68,11 +68,11 @@ impl ProcessHandleInterface for DriverProcessHandle {
             // Create a byte buffer to store the result
             let mut buf = vec![0u8; size];
 
-            trace!(
-                "Allocated buffer with length {} at 0x{:X}",
-                size,
-                buf.as_mut_ptr() as usize
-            );
+            // trace!(
+            //     "Allocated buffer with length {} at 0x{:X}",
+            //     size,
+            //     buf.as_mut_ptr() as usize
+            // );
 
             // Create the request
             let mut req: ReadMemory = std::mem::zeroed();
@@ -86,7 +86,7 @@ impl ProcessHandleInterface for DriverProcessHandle {
 
             if status != 0 {
                 return Err(format!(
-                    "Sending WriteRequest failed with error {} (0x{:X})",
+                    "Sending ReadRequest failed with error {} (0x{:X})",
                     error_code_to_message(status).unwrap_or_else(|| "".into()),
                     status
                 )
