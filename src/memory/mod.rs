@@ -104,7 +104,14 @@ impl Handle {
         // self.try_read_memory(address)
         //     .expect(&format!("Error reading {:#X} from process", address))
         let result = self.try_read_memory(address);
-        result.expect(&format!("Error reading {:#X} from process", address))
+        if let Err(err) = &result {
+            error!(
+                "Error reading {:#X} from process. Defaulting to zero",
+                address
+            );
+        }
+        // result.expect(&format!("Error reading {:#X} from process", address))
+        result.unwrap_or(unsafe { std::mem::zeroed() })
     }
 
     /// Attempts to read memory of type T from a process. If unsucessful,
