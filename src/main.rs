@@ -11,8 +11,8 @@ pub mod macros;
 
 fn main() {
     let handle = memory::Handle::from(
-        memory::handle_interfaces::driver_handle::DriverProcessHandle::attach("hl.exe").unwrap()
+        memory::handle_interfaces::driver_handle::DriverProcessHandle::attach("notepad.exe").unwrap()
     );
-    let module = handle.get_module("hl.exe");
-    println!("{:?}", module);
+
+    println!("{:?}", handle.read_memory::<u32>(1000000000));
 }

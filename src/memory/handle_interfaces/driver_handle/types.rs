@@ -18,7 +18,7 @@ pub enum KernelError {
 
 impl std::fmt::Debug for KernelError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match &self {
+        let _ = match &self {
             KernelError::Message(msg) => write!(f, "{}", msg),
             KernelError::Status(status) => match error_code_to_message(*status as _) {
                 Some(error) => write!(f, "{} ({:X})", error, status),

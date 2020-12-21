@@ -1,9 +1,7 @@
 use super::*;
 use crate::memory::Result;
 use std::ffi::CString;
-use std::fmt::Debug;
 use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress};
-use super::types::*;
 
 pub const HOOKED_FN_NAME: &str = "NtQueryCompositionSurfaceStatistics";
 
@@ -31,10 +29,8 @@ impl DriverProcessHandle {
     }
 
     pub(crate) fn call_hook(&self, data: &mut Data) {
-        unsafe {
-            let hook = self.hook;
-            hook(data as *mut _ as _)
-        }
+        let hook = self.hook;
+        hook(data as *mut _ as _)
     }
 
     pub(crate) fn send_request(&self, req: Request) -> std::result::Result<Response, KernelError> {
@@ -63,9 +59,7 @@ impl DriverProcessHandle {
                     return Err(KernelError::text(&format!("Kernel wrote {} bytes while the response was {} bytes", buffer.len(), len)));
                 }
 
-                let resp = postcard::from_bytes(&buffer).unwrap();
-
-                resp
+                postcard::from_bytes(&buffer).unwrap()
             }
             RunRequestResponse::Response(resp) => resp
         }
