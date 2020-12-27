@@ -7,9 +7,9 @@ use std::slice;
 
 mod findpattern;
 mod global_handle;
-mod handle_interfaces;
 mod pointer;
 
+pub mod handle_interfaces;
 pub mod scan;
 
 pub use findpattern::find_pattern;
@@ -62,6 +62,12 @@ pub struct ProcessInfo {
 /// A handle to a process allowing Reading and writing memory
 pub struct Handle {
     interface: Box<dyn ProcessHandleInterface>,
+}
+
+impl<T: 'static + ProcessHandleInterface> From<T> for Handle {
+    fn from(interface: T) -> Self {
+        Self::from_interface(Box::new(interface))
+    }
 }
 
 impl Handle {
@@ -261,6 +267,7 @@ impl Handle {
 }
 
 /// Defines information about a module
+#[derive(Clone, Debug)]
 pub struct Module {
     /// The image base address
     pub base_address: Address,

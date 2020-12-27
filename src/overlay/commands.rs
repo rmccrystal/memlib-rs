@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde::{Serialize, Deserialize};
 
 /// Commands are sent through the pipe to control the overlay
