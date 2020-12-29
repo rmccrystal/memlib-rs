@@ -53,6 +53,15 @@ impl Color {
         Self::from_rgba(r, g, b, 255)
     }
 
+    pub fn to_rgba(&self) -> (u8, u8, u8, u8) {
+        (
+            (((self.0) & 0xFF) as u8),
+            ((self.0 >> 8) & 0xFF) as u8,
+            ((self.0 >> 16) & 0xFF) as u8,
+            ((self.0 >> 24) & 0xFF) as u8
+        )
+    }
+
     pub fn opacity(&self, opacity: u8) -> Self {
         Self((self.0 & 0x00FFFFFF) + ((opacity as u32) << 24))
     }
@@ -75,7 +84,7 @@ impl From<u32> for Color {
 }
 
 #[test]
-fn asdf() {
-    println!("{:X}", Color::from_rgb(255, 0, 0).opacity(100).0);
-    assert_eq!(1, 2);
+fn test_to_rgba() {
+    let color = Color::from_rgba(1, 2, 3, 4);
+    assert_eq!(color.to_rgba(), (1, 2, 3, 4));
 }

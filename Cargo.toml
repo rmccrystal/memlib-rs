@@ -25,7 +25,7 @@ futures = "0.3.5"
 lazy_static = "1.4.0"
 win_key_codes = "0.1.2"
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = { version = "0.3.9", features = ["memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi"] }
+winapi = { version = "0.3.9", features = ["memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi", "d2d1", "dwmapi", "uxtheme", "windef", "dwrite", "unknwnbase", "dcommon", "dxgiformat", "d2dbasetypes", "d3d9types"] }
 postcard = { version = "0.5.1", features = ["alloc"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 #libc = "0.2.74"

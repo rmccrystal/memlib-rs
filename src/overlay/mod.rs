@@ -8,4 +8,6 @@ pub mod color;
 pub use color::Color;
 
 mod overlay;
+pub mod nvidia;
+
 pub use overlay::*;
