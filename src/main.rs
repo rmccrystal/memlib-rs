@@ -26,18 +26,33 @@ fn main() {
     // println!("{:?}", handle.read_memory::<u32>(1000000000));
 
     let mut overlay = NvidiaOverlay::init().unwrap();
-    let mut timer = LoopTimer::new(60);
+    let mut timer = LoopTimer::new(1);
+
+    // overlay.begin(); overlay.end(); return;
     loop {
         timer.wait();
         overlay.begin();
 
         overlay.draw_box(
-            Vector2{x: 100 as f32, y: 100 as f32 },
-            Vector2{x: 500 as f32, y: 500 as f32 },
+            Vector2{x: 50.0, y: 100.0 },
+            Vector2{x: 150.0, y: 200.0 },
             BoxOptions::default()
-                .color(Color::from_rgb(255, 0, 0))
+                .color(Color::from_rgba(255, 0, 0, 100))
         );
 
         overlay.end();
+
+        timer.wait();
+        overlay.begin();
+
+        overlay.draw_box(
+            Vector2{x: 500.0, y: 1000.0 },
+            Vector2{x: 1500.0, y: 200.0 },
+            BoxOptions::default()
+                .color(Color::from_rgba(255, 0, 0, 100))
+        );
+
+        overlay.end();
+
     }
 }

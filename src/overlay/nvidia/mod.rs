@@ -170,13 +170,20 @@ impl NvidiaOverlay {
     }
 }
 
+// TODO: Clean everything up upon drop
+
 impl OverlayInterface for NvidiaOverlay {
     fn begin(&mut self) {
-        unsafe { self.render.BeginDraw() };
+        unsafe {
+            self.render.BeginDraw();
+            self.render.Clear(null());
+        };
     }
 
     fn end(&mut self) {
-        unsafe { self.render.EndDraw(null_mut(), null_mut()) };
+        unsafe {
+            self.render.EndDraw(null_mut(), null_mut())
+        };
     }
 
     fn draw_line(&mut self, p1: Vector2, p2: Vector2, options: LineOptions) {
