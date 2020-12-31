@@ -1,5 +1,5 @@
 use crate::overlay::nvidia::NvidiaOverlay;
-use crate::overlay::{OverlayInterface, BoxOptions, Color};
+use crate::overlay::{OverlayInterface, BoxOptions, Color, TextOptions};
 use crate::util::LoopTimer;
 use crate::math::Vector2;
 
@@ -26,33 +26,19 @@ fn main() {
     // println!("{:?}", handle.read_memory::<u32>(1000000000));
 
     let mut overlay = NvidiaOverlay::init().unwrap();
-    let mut timer = LoopTimer::new(1);
+    let mut timer = LoopTimer::new(50);
 
-    // overlay.begin(); overlay.end(); return;
+    overlay.begin();
+    overlay.end();
+    return;
     loop {
         timer.wait();
         overlay.begin();
 
-        overlay.draw_box(
-            Vector2{x: 50.0, y: 100.0 },
-            Vector2{x: 150.0, y: 200.0 },
-            BoxOptions::default()
-                .color(Color::from_rgba(255, 0, 0, 100))
+        overlay.draw_text(Vector2 { x: 100.0, y: 200.0 }, "Swag moment", TextOptions::default()
+            .color(Color::dark_gray()),
         );
 
         overlay.end();
-
-        timer.wait();
-        overlay.begin();
-
-        overlay.draw_box(
-            Vector2{x: 500.0, y: 1000.0 },
-            Vector2{x: 1500.0, y: 200.0 },
-            BoxOptions::default()
-                .color(Color::from_rgba(255, 0, 0, 100))
-        );
-
-        overlay.end();
-
     }
 }

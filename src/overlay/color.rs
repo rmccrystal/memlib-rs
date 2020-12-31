@@ -21,18 +21,42 @@ impl Color {
         let mut b = 0.0;
 
         let hi = (h / 60.0) as i32 % 6;
-        let f  = (h / 60.0) - hi as f32;
-        let p  = v * (1.0 - s);
-        let q  = v * (1.0 - s * f);
-        let t  = v * (1.0 - s * (1.0 - f));
+        let f = (h / 60.0) - hi as f32;
+        let p = v * (1.0 - s);
+        let q = v * (1.0 - s * f);
+        let t = v * (1.0 - s * (1.0 - f));
 
         match hi {
-            0 => { r = v; g = t; b = p; }
-            1 => { r = q; g = v; b = p; }
-            2 => { r = p; g = v; b = t; }
-            3 => { r = p; g = q; b = v; }
-            4 => { r = t; g = p; b = v; }
-            5 => { r = v; g = p; b = q; }
+            0 => {
+                r = v;
+                g = t;
+                b = p;
+            }
+            1 => {
+                r = q;
+                g = v;
+                b = p;
+            }
+            2 => {
+                r = p;
+                g = v;
+                b = t;
+            }
+            3 => {
+                r = p;
+                g = q;
+                b = v;
+            }
+            4 => {
+                r = t;
+                g = p;
+                b = v;
+            }
+            5 => {
+                r = v;
+                g = p;
+                b = q;
+            }
             _ => {}
         }
 
@@ -81,6 +105,27 @@ impl From<u32> for Color {
     fn from(val: u32) -> Self {
         Color::new(val)
     }
+}
+
+macro_rules! static_color {
+    ($name:ident,$hex:literal) => {
+        pub fn $name() -> Self {
+            Self::from_hex($hex)
+        }
+    };
+}
+
+impl Color {
+    static_color!(red, 0xC0392B);
+    static_color!(orange, 0xF39C12);
+    static_color!(purple, 0x6C3483);
+    static_color!(blue, 0x6C3483);
+    static_color!(green, 0x6C3483);
+    static_color!(yellow, 0xF4D03F);
+    static_color!(white, 0xF7F9F9);
+    static_color!(light_gray, 0x839192);
+    static_color!(gray, 0x839192);
+    static_color!(dark_gray, 0x839192);
 }
 
 #[test]
