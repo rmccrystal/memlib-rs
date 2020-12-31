@@ -1,5 +1,5 @@
 use crate::overlay::nvidia::NvidiaOverlay;
-use crate::overlay::{OverlayInterface, BoxOptions, Color, TextOptions};
+use crate::overlay::{OverlayInterface, BoxOptions, Color, TextOptions, Font};
 use crate::util::LoopTimer;
 use crate::math::Vector2;
 
@@ -28,15 +28,15 @@ fn main() {
     let mut overlay = NvidiaOverlay::init().unwrap();
     let mut timer = LoopTimer::new(50);
 
-    overlay.begin();
-    overlay.end();
-    return;
+    // overlay.begin();overlay.end();return;
     loop {
         timer.wait();
         overlay.begin();
 
-        overlay.draw_text(Vector2 { x: 100.0, y: 200.0 }, "Swag moment", TextOptions::default()
-            .color(Color::dark_gray()),
+        overlay.draw_text(Vector2 { x: 100.0, y: 200.0 }, "hello", TextOptions::default()
+            .color(Color::white())
+            .font(Font::Pixel)
+            .font_size(Some(20.0))
         );
 
         overlay.end();

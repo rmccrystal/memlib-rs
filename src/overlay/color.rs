@@ -122,7 +122,8 @@ impl Color {
     static_color!(blue, 0x6C3483);
     static_color!(green, 0x6C3483);
     static_color!(yellow, 0xF4D03F);
-    static_color!(white, 0xF7F9F9);
+    static_color!(white, 0xFFFFFF);
+    static_color!(black, 0x000000);
     static_color!(light_gray, 0x839192);
     static_color!(gray, 0x839192);
     static_color!(dark_gray, 0x839192);

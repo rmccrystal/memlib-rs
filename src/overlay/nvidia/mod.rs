@@ -7,7 +7,7 @@ use winapi::Interface;
 use winapi::shared::dxgiformat::DXGI_FORMAT_UNKNOWN;
 use winapi::shared::windef::{HWND, RECT};
 use winapi::shared::winerror::FAILED;
-use winapi::um::d2d1::{D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_FEATURE_LEVEL_DEFAULT, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1_RENDER_TARGET_USAGE_NONE, D2D1CreateFactory, ID2D1Factory, ID2D1HwndRenderTarget, ID2D1Brush, D2D1_COLOR_F, D2D1_BRUSH_PROPERTIES, ID2D1SolidColorBrush, ID2D1StrokeStyle, ID2D1BrushVtbl, ID2D1RenderTarget, D2D1_ANTIALIAS_MODE_ALIASED, D2D1_ROUNDED_RECT, D2D1_POINT_2F, D2D1_DRAW_TEXT_OPTIONS_NONE};
+use winapi::um::d2d1::{D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_FEATURE_LEVEL_DEFAULT, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1_RENDER_TARGET_USAGE_NONE, D2D1CreateFactory, ID2D1Factory, ID2D1HwndRenderTarget, ID2D1Brush, D2D1_COLOR_F, D2D1_BRUSH_PROPERTIES, ID2D1SolidColorBrush, ID2D1StrokeStyle, ID2D1BrushVtbl, ID2D1RenderTarget, D2D1_ANTIALIAS_MODE_ALIASED, D2D1_ROUNDED_RECT, D2D1_POINT_2F, D2D1_DRAW_TEXT_OPTIONS_NONE, D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE, D2D1_TEXT_ANTIALIAS_MODE_ALIASED};
 use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT, D2D1_SIZE_U, D2D1_RECT_F, DWRITE_MEASURING_MODE_NATURAL};
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
 use winapi::um::dwrite::{DWRITE_FACTORY_TYPE_SHARED, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_WEIGHT_REGULAR, DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat};
@@ -49,6 +49,7 @@ impl NvidiaOverlay {
             let render: &'static ID2D1RenderTarget = &*render;
 
             render.SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+            render.SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
 
             Ok(Self { render, window, write_factory })
         }
@@ -165,25 +166,28 @@ impl NvidiaOverlay {
     }
 
     pub fn create_text_format(&self, font: Font, size: f32) -> *mut IDWriteTextFormat {
-        _create_text_format(self.write_factory as *const _ as _, font, size as _) as _
+
+        __create_text_format(self.write_factory as *const _ as _, font, size as _) as _
     }
 }
 
 /// Please do not use this function outside of the wrapper method
 #[cached]
-fn _create_text_format(write_factory: usize, font: Font, size: i32) -> usize /* *mut IDWriteTextFormat */ {
+fn __create_text_format(write_factory: usize, font: Font, size: i32) -> usize /* *mut IDWriteTextFormat */ {
     unsafe {
         let write_factory: *const IDWriteFactory = write_factory as _;
         // TODO: use in memory fonts
         let font_name = match font {
             Font::Default => "Times new Roman",
-            Font::Pixel => "Small Fonts",
+            Font::Pixel => "Smallest Pixel-7",
             Font::Tahoma => "Tahoma",
             Font::Verdana => "Verdana",
         };
 
+
+
         let mut text_format: *mut IDWriteTextFormat = null_mut();
-        (*write_factory).CreateTextFormat(
+        let result = (*write_factory).CreateTextFormat(
             c_string_w!(font_name),
             null_mut(),
             DWRITE_FONT_WEIGHT_REGULAR,
@@ -193,6 +197,9 @@ fn _create_text_format(write_factory: usize, font: Font, size: i32) -> usize /* 
             c_string_w!("en-us"),
             &mut text_format,
         );
+        if FAILED(result) {
+            panic!("Could not create font named {}: {:X}", font_name, result);
+        }
 
         text_format as _
     }
@@ -267,7 +274,6 @@ impl OverlayInterface for NvidiaOverlay {
 
     fn draw_text(&mut self, origin: Vector2, text: &str, options: TextOptions) {
         unsafe {
-            // TODO: we should probably cache this or time it to see if it makes any difference
             let format = self.create_text_format(options.font, options.font_size.unwrap_or(12.0));
             let brush = self.create_brush(options.color.into());
             self.render.DrawText(
