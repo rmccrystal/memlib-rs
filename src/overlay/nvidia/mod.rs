@@ -7,7 +7,7 @@ use winapi::Interface;
 use winapi::shared::dxgiformat::DXGI_FORMAT_UNKNOWN;
 use winapi::shared::windef::{HWND, RECT};
 use winapi::shared::winerror::FAILED;
-use winapi::um::d2d1::{D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_FEATURE_LEVEL_DEFAULT, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1_RENDER_TARGET_USAGE_NONE, D2D1CreateFactory, ID2D1Factory, ID2D1HwndRenderTarget, ID2D1Brush, D2D1_COLOR_F, D2D1_BRUSH_PROPERTIES, ID2D1SolidColorBrush, ID2D1StrokeStyle, ID2D1BrushVtbl, ID2D1RenderTarget, D2D1_ANTIALIAS_MODE_ALIASED, D2D1_ROUNDED_RECT, D2D1_POINT_2F, D2D1_DRAW_TEXT_OPTIONS_NONE, D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE, D2D1_TEXT_ANTIALIAS_MODE_ALIASED};
+use winapi::um::d2d1::{D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_FEATURE_LEVEL_DEFAULT, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1_RENDER_TARGET_USAGE_NONE, D2D1CreateFactory, ID2D1Factory, ID2D1HwndRenderTarget, ID2D1Brush, D2D1_COLOR_F, D2D1_BRUSH_PROPERTIES, ID2D1SolidColorBrush, ID2D1StrokeStyle, ID2D1BrushVtbl, ID2D1RenderTarget, D2D1_ANTIALIAS_MODE_ALIASED, D2D1_ROUNDED_RECT, D2D1_POINT_2F, D2D1_DRAW_TEXT_OPTIONS_NONE, D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE, D2D1_TEXT_ANTIALIAS_MODE_ALIASED, D2D1_TEXT_ANTIALIAS_MODE_DEFAULT};
 use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT, D2D1_SIZE_U, D2D1_RECT_F, DWRITE_MEASURING_MODE_NATURAL};
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
 use winapi::um::dwrite::{DWRITE_FACTORY_TYPE_SHARED, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_WEIGHT_REGULAR, DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat};
@@ -17,7 +17,7 @@ use winapi::um::winuser::{FindWindowA, GetClientRect, GetWindowLongA, GWL_EXSTYL
 
 use crate::math::Vector2;
 use crate::memory::Result;
-use crate::overlay::{BoxOptions, CircleOptions, LineOptions, OverlayInterface, TextOptions, Color, Font};
+use crate::overlay::{BoxOptions, CircleOptions, LineOptions, OverlayInterface, TextOptions, Color, Font, TextStyle};
 use cached::proc_macro::cached;
 
 macro_rules! c_string {
@@ -43,19 +43,18 @@ pub struct NvidiaOverlay {
 impl NvidiaOverlay {
     pub fn init() -> Result<Self> {
         unsafe {
-            let window = Self::init_window()?;
+            let window = Self::get_window()?;
             let (render, write_factory) = Self::init_d2d(window)?;
 
             let render: &'static ID2D1RenderTarget = &*render;
 
             render.SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
-            render.SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
 
             Ok(Self { render, window, write_factory })
         }
     }
 
-    unsafe fn init_window() -> Result<HWND> {
+    unsafe fn get_window() -> Result<HWND> {
         let window = FindWindowA(c_string!("CEF-OSC-WIDGET"), c_string!("NVIDIA GeForce Overlay"));
         if window.is_null() {
             return Err("Could not find NVIDIA GeForce Overlay window".into());
@@ -63,11 +62,10 @@ impl NvidiaOverlay {
 
         // Get the window extended window style
         let style = GetWindowLongA(window, GWL_EXSTYLE);
+
         // Set the window style to transparent
-        // TODO: Shouldn't this already be transparent?
         SetWindowLongPtrA(window, GWL_EXSTYLE, (style | WS_EX_TRANSPARENT as i32) as _);
 
-        // Set the window transparency
         DwmExtendFrameIntoClientArea(window, &MARGINS {
             cxLeftWidth: -1,
             cxRightWidth: -1,
@@ -78,7 +76,6 @@ impl NvidiaOverlay {
         SetLayeredWindowAttributes(window, 0, 0xFF, 0x02);
 
         // Set window as topmost
-        // TODO: I don't think we should need this either because nvidia is already topmost
         SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
         ShowWindow(window, SW_SHOW);
@@ -165,8 +162,7 @@ impl NvidiaOverlay {
         }
     }
 
-    pub fn create_text_format(&self, font: Font, size: f32) -> *mut IDWriteTextFormat {
-
+    pub fn create_text_format(&self, font: Font, mut size: f32) -> *mut IDWriteTextFormat {
         __create_text_format(self.write_factory as *const _ as _, font, size as _) as _
     }
 }
@@ -183,7 +179,6 @@ fn __create_text_format(write_factory: usize, font: Font, size: i32) -> usize /*
             Font::Tahoma => "Tahoma",
             Font::Verdana => "Verdana",
         };
-
 
 
         let mut text_format: *mut IDWriteTextFormat = null_mut();
@@ -274,17 +269,52 @@ impl OverlayInterface for NvidiaOverlay {
 
     fn draw_text(&mut self, origin: Vector2, text: &str, options: TextOptions) {
         unsafe {
-            let format = self.create_text_format(options.font, options.font_size.unwrap_or(12.0));
-            let brush = self.create_brush(options.color.into());
-            self.render.DrawText(
-                c_string_w!(text),
-                text.len() as _,
-                format,
-                &D2D1_RECT_F { left: origin.x, top: origin.y, right: 1000.0, bottom: 800.0 }, // TODO
-                brush,
-                D2D1_DRAW_TEXT_OPTIONS_NONE,
-                DWRITE_MEASURING_MODE_NATURAL,
-            );
+            let mut font_size = options.font_size.unwrap_or(12.0);
+            match options.font {
+                Font::Pixel => {
+                    self.render.SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
+                    font_size = (font_size / 10.0).round() * 10.0
+                }
+                _ => {
+                    self.render.SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_DEFAULT);
+                }
+            }
+
+            let format = self.create_text_format(options.font, font_size);
+            let mut draw = |color: u32, offset: (f32, f32)| {
+                let brush = self.create_brush(color.into());
+                let x = offset.0 + origin.x;
+                let y = offset.1 + origin.y;
+                self.render.DrawText(
+                    c_string_w!(text),
+                    text.len() as _,
+                    format,
+                    &D2D1_RECT_F { left: x, top: y, right: 1000.0, bottom: 800.0 }, // TODO
+                    brush,
+                    D2D1_DRAW_TEXT_OPTIONS_NONE,
+                    DWRITE_MEASURING_MODE_NATURAL,
+                )
+            };
+
+            let shadow_delta = 1.0;
+
+            match options.style {
+                TextStyle::None => {},
+                TextStyle::Shadow => {
+                    draw(options.shadow_color, (shadow_delta, shadow_delta));
+                }
+                TextStyle::Outlined => {
+                    draw(options.shadow_color, (shadow_delta, shadow_delta));
+                    draw(options.shadow_color, (shadow_delta, -shadow_delta));
+                    draw(options.shadow_color, (-shadow_delta, shadow_delta));
+                    draw(options.shadow_color, (-shadow_delta, -shadow_delta));
+                    draw(options.shadow_color, (0.0, shadow_delta));
+                    draw(options.shadow_color, (0.0, -shadow_delta));
+                    draw(options.shadow_color, (shadow_delta, 0.0));
+                    draw(options.shadow_color, (-shadow_delta, 0.0));
+                }
+            }
+            draw(options.color, (0.0, 0.));
         }
     }
 

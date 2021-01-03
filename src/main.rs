@@ -1,5 +1,5 @@
 use crate::overlay::nvidia::NvidiaOverlay;
-use crate::overlay::{OverlayInterface, BoxOptions, Color, TextOptions, Font};
+use crate::overlay::{OverlayInterface, BoxOptions, Color, TextOptions, Font, TextStyle};
 use crate::util::LoopTimer;
 use crate::math::Vector2;
 
@@ -13,10 +13,6 @@ pub mod overlay;
 
 #[macro_use]
 pub mod macros;
-
-// There are going to be different error types throughout
-// this package, so define Result to use a boxed Error trait
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 fn main() {
     // let handle = memory::Handle::from(
@@ -33,10 +29,18 @@ fn main() {
         timer.wait();
         overlay.begin();
 
-        overlay.draw_text(Vector2 { x: 100.0, y: 200.0 }, "hello", TextOptions::default()
+        overlay.draw_text(Vector2 { x: 300.0, y: 200.0 }, "test123", TextOptions::default()
             .color(Color::white())
-            .font(Font::Pixel)
+            .font(Font::Tahoma)
+            .style(TextStyle::Shadow)
             .font_size(Some(20.0))
+        );
+
+        overlay.draw_text(Vector2 { x: 200.0, y: 200.0 }, "DOasdfWN", TextOptions::default()
+            .color(Color::from_rgb(255, 0, 0))
+            .font(Font::Pixel)
+            .style(TextStyle::Outlined)
+            .font_size(Some(10.0))
         );
 
         overlay.end();
