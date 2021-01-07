@@ -1,7 +1,7 @@
 
 use crate::math::Vector2;
 
-use super::commands::*;
+use super::types::*;
 
 pub type Overlay = Box<dyn OverlayInterface + Sync + Send + 'static>;
 

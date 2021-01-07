@@ -1,31 +1,40 @@
 use core::ptr::null_mut;
-use imgui_dx9_renderer::Renderer;
-use winapi::shared::d3d9::{LPDIRECT3DDEVICE9, IDirect3DDevice9};
-use winapi::shared::windef::{HWND, RECT};
-use winapi::um::winuser::{DispatchMessageA, MSG, PeekMessageA, PM_REMOVE, TranslateMessage, GetClientRect, ShowWindow, SW_SHOWDEFAULT, UpdateWindow, GetWindowLongA, GWL_STYLE, WS_POPUP, WS_CLIPSIBLINGS, WS_DISABLED, WS_VISIBLE, SetWindowLongA, GetWindow, GetForegroundWindow, GW_HWNDPREV, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOMOVE, SWP_NOSIZE};
-use imgui::{Context, Ui, DrawData, ImColor};
-use super::util;
-use crate::memory::Result;
-use winapi::um::profileapi::{QueryPerformanceCounter, QueryPerformanceFrequency};
+
+use anyhow::Result;
+use imgui::{Context, DrawData, ImColor, Ui};
 use imgui::FontSource::DefaultFontData;
+use imgui_dx9_renderer::Renderer;
+use log::*;
+use winapi::_core::ptr::null;
+use winapi::shared::d3d9::{IDirect3DDevice9, LPDIRECT3DDEVICE9};
+use winapi::shared::d3d9types::{D3DCLEAR_TARGET, D3DCLEAR_ZBUFFER, D3DRS_ALPHABLENDENABLE, D3DRS_SCISSORTESTENABLE, D3DRS_ZENABLE};
+use winapi::shared::ntdef::FALSE;
+use winapi::shared::windef::{HWND, RECT};
+use winapi::um::profileapi::{QueryPerformanceCounter, QueryPerformanceFrequency};
+use winapi::um::winuser::{DispatchMessageA, GetClientRect, GetForegroundWindow, GetWindow, GetWindowLongA, GW_HWNDPREV, GWL_STYLE, MSG, PeekMessageA, PM_REMOVE, SetWindowLongA, SetWindowPos, ShowWindow, SW_SHOWDEFAULT, SWP_ASYNCWINDOWPOS, SWP_NOMOVE, SWP_NOSIZE, TranslateMessage, UpdateWindow, WS_CLIPSIBLINGS, WS_DISABLED, WS_POPUP, WS_VISIBLE};
+
 use crate::overlay::Color;
+use crate::overlay::util::D3DDevice9;
+
+use super::util;
+use super::util::ToError;
 
 pub struct Imgui {
     pub context: Context,
     pub renderer: Renderer,
-    pub device: &'static mut IDirect3DDevice9,
+    pub device: D3DDevice9,
     window: HWND,
     ticks_per_second: i64,
     time: i64,
 }
 
 impl Imgui {
-    pub fn from_dx9(window: HWND) -> Result<Imgui> {
-        let device = unsafe { util::create_d3d_device(window)? };
+    pub fn from_window(window: HWND) -> Result<Imgui> {
+        let mut device = unsafe { util::create_d3d_device(window)? };
 
         let mut context = imgui::Context::create();
         let renderer = unsafe {
-            imgui_dx9_renderer::Renderer::new_raw(&mut context, device)
+            imgui_dx9_renderer::Renderer::new_raw(&mut context, &mut *device)
         }.unwrap();
 
         let mut ticks_per_second: i64 = 0;
@@ -39,7 +48,7 @@ impl Imgui {
         Ok(Self {
             renderer,
             context,
-            device: unsafe { device.as_mut().unwrap() },
+            device,
             window,
             ticks_per_second,
             time,
@@ -85,18 +94,16 @@ impl Imgui {
             run_ui(&mut ui);
 
             let draw_data = ui.render();
-            unsafe { self.device.BeginScene() };
-            self.renderer.render(&draw_data).unwrap();
-            unsafe { self.device.EndScene() };
+            unsafe {
+                self.device.BeginScene().to_err().unwrap();
+
+                self.renderer.render(&draw_data).unwrap();
+
+                self.device.EndScene().to_err().unwrap();
+                if let Err(e) = self.device.Present(null(), null(), null_mut(), null()).to_err() {
+                    error!("Erorr in DX9 Present for IMGUI: {:?}", e);
+                }
+            }
         }
-    }
-
-    pub fn render(&mut self, draw_data: &DrawData) {
-
-        // let mut current_time = Default::default();
-        // unsafe { QueryPerformanceCounter(&mut current_time)};
-        // io.delta_time = (current_time - )
-
-        self.renderer.render(&draw_data).unwrap();
     }
 }

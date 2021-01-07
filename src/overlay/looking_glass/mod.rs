@@ -7,7 +7,7 @@ use std::os::unix::fs::OpenOptionsExt;
 
 use crate::overlay::{OverlayInterface};
 use std::collections::VecDeque;
-use super::commands::*;
+use super::types::*;
 use crate::math::Vector2;
 
 pub struct LookingGlassOverlay {

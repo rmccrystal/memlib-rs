@@ -1,10 +1,11 @@
-use crate::overlay::nvidia::NvidiaOverlay;
 use crate::overlay::{OverlayInterface, BoxOptions, Color, TextOptions, Font, TextStyle};
 use crate::util::LoopTimer;
 use crate::math::Vector2;
 use crate::overlay::imgui::Imgui;
-use imgui::{Window, Condition};
-use imgui::im_str;
+use imgui::*;
+use winapi::um::winuser::{WNDCLASSEXA, CreateWindowExA};
+use winapi::um::libloaderapi::GetModuleHandleA;
+use std::ptr::null_mut;
 
 pub mod hacks;
 pub mod logger;
@@ -26,16 +27,62 @@ fn main() {
 
     // let mut ov = overlay::nvidia::NvidiaOverlay::init().unwrap();
     let window = unsafe { overlay::util::hijack_window("CEF-OSC-WIDGET", "NVIDIA GeForce Overlay").unwrap() };
-    let mut imgui = Imgui::from_dx9(window).unwrap();
+    let mut imgui = Imgui::from_window(window).unwrap();
 
-    imgui.main_loop(|ui| {
-        ui.show_user_guide();
-        
-        Window::new(im_str!("test"))
-            .size([300.0, 500.0], Condition::FirstUseEver)
+    imgui.main_loop(move |ui| {
+        {
+            let bg_draw_list = ui.get_background_draw_list();
+            bg_draw_list
+                .add_circle([150.0, 150.0], 150.0, [1.0, 0.0, 0.0])
+                .thickness(4.0)
+                .build();
+        }
+
+        {
+            let [w, h] = ui.io().display_size;
+            let fg_draw_list = ui.get_foreground_draw_list();
+            fg_draw_list
+                .add_circle([w - 150.0, h - 150.0], 150.0, [1.0, 0.0, 0.0])
+                .thickness(4.0)
+                .build();
+        }
+
+        Window::new(im_str!("Draw list"))
+            .size([300.0, 110.0], Condition::FirstUseEver)
+            .scroll_bar(false)
             .build(ui, || {
-                ui.text(im_str!("hello world"));
-            })
+                ui.button(im_str!("random button"), [0.0, 0.0]);
+                let draw_list = ui.get_window_draw_list();
+                let o = ui.cursor_screen_pos();
+                let ws = ui.content_region_avail();
+                draw_list
+                    .add_circle([o[0] + 10.0, o[1] + 10.0], 5.0, [1.0, 0.0, 0.0])
+                    .thickness(4.0)
+                    .build();
+                draw_list
+                    .add_circle([o[0] + ws[0] - 10.0, o[1] + 10.0], 5.0, [0.0, 1.0, 0.0])
+                    .thickness(4.0)
+                    .build();
+                draw_list
+                    .add_circle(
+                        [o[0] + ws[0] - 10.0, o[1] + ws[1] - 10.0],
+                        5.0,
+                        [0.0, 0.0, 1.0],
+                    )
+                    .thickness(4.0)
+                    .build();
+                draw_list
+                    .add_circle([o[0] + 10.0, o[1] + ws[1] - 10.0], 5.0, [1.0, 1.0, 0.0])
+                    .thickness(4.0)
+                    .build();
+                draw_text_centered(
+                    ui,
+                    &draw_list,
+                    [o[0], o[1], ws[0], ws[1]],
+                    im_str!("window draw list"),
+                    [1.0, 1.0, 1.0],
+                );
+            });
     })
 
     // let mut overlay = NvidiaOverlay::init().unwrap();

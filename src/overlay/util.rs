@@ -1,24 +1,16 @@
-use std::sync::mpsc::{channel, Sender};
-
-use winapi::_core::ffi::c_void;
-use winapi::_core::ptr::{null, null_mut};
-use winapi::Interface;
-use winapi::shared::d3d9::{D3D_SDK_VERSION, D3DADAPTER_DEFAULT, D3DCREATE_HARDWARE_VERTEXPROCESSING, Direct3DCreate9, IDirect3D9, LPDIRECT3DDEVICE9};
-use winapi::shared::d3d9caps::D3DPRESENT_INTERVAL_ONE;
-use winapi::shared::d3d9types::{D3DDEVTYPE_HAL, D3DFMT_A8R8G8B8, D3DFMT_D16, D3DMULTISAMPLE_NONE, D3DPRESENT_PARAMETERS, D3DSWAPEFFECT_DISCARD};
-use winapi::shared::dxgiformat::DXGI_FORMAT_UNKNOWN;
-use winapi::shared::ntdef::TRUE;
-use winapi::shared::windef::{HWND, RECT};
-use winapi::shared::winerror::FAILED;
-use winapi::um::d2d1::{D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES, D2D1CreateFactory, ID2D1Factory, ID2D1HwndRenderTarget};
-use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT, D2D1_SIZE_U};
+use winapi::um::winuser::{FindWindowA, GWL_EXSTYLE, GetWindowLongA, SetWindowLongPtrA, WS_EX_TRANSPARENT, SetLayeredWindowAttributes, HWND_TOPMOST, SetWindowPos, SWP_NOSIZE, SWP_NOMOVE, SW_SHOW, ShowWindow};
+use anyhow::*;
+use winapi::shared::windef::HWND;
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
-use winapi::um::dwrite::{DWRITE_FACTORY_TYPE_SHARED, DWriteCreateFactory, IDWriteFactory};
-use winapi::um::unknwnbase::IUnknown;
 use winapi::um::uxtheme::MARGINS;
-use winapi::um::winuser::{DispatchMessageA, FindWindowA, GetClientRect, GetWindowLongA, GWL_EXSTYLE, HWND_TOPMOST, MSG, PeekMessageA, PM_REMOVE, SetLayeredWindowAttributes, SetWindowLongPtrA, SetWindowPos, ShowWindow, SW_SHOW, SWP_NOMOVE, SWP_NOSIZE, TranslateMessage, WS_EX_TRANSPARENT};
-
-use crate::memory;
+use winapi::shared::d3d9::{LPDIRECT3DDEVICE9, IDirect3DDevice9, Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_DEFAULT, D3DCREATE_HARDWARE_VERTEXPROCESSING};
+use winapi::_core::ops::{DerefMut, Deref};
+use winapi::shared::d3d9types::{D3DPRESENT_PARAMETERS, D3DSWAPEFFECT_DISCARD, D3DFMT_D16, D3DMULTISAMPLE_NONE, D3DFMT_A8R8G8B8, D3DDEVTYPE_HAL};
+use std::ptr::null_mut;
+use winapi::shared::d3d9caps::D3DPRESENT_INTERVAL_ONE;
+use winapi::shared::ntdef::NTSTATUS;
+use winapi::shared::winerror::FAILED;
+use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
 
 macro_rules! c_string {
     ($str:expr) => {std::ffi::CString::new($str).unwrap().as_ptr()};
@@ -34,62 +26,25 @@ macro_rules! c_string_w {
     }}
 }
 
-pub unsafe fn init_d2d(window: HWND) -> memory::Result<(&'static ID2D1HwndRenderTarget, &'static IDWriteFactory)> {
-    let mut d2d_factory: *mut c_void = null_mut();
-    let result = D2D1CreateFactory(
-        D2D1_FACTORY_TYPE_MULTI_THREADED,
-        &ID2D1Factory::uuidof(),
-        null(),
-        &mut d2d_factory,
-    );
-    if FAILED(result) {
-        return Err(format!("Could not create D2D1 factory: {:X}", result).into());
-    }
-    let d2d_factory = (d2d_factory as *mut ID2D1Factory).as_mut().unwrap();
-
-    let mut write_factory: *mut IUnknown = null_mut();
-    let result = DWriteCreateFactory(
-        DWRITE_FACTORY_TYPE_SHARED,
-        &IDWriteFactory::uuidof(),
-        &mut write_factory,
-    );
-    if FAILED(result) {
-        return Err(format!("Could not create D2D1 write factory: {:X}", result).into());
-    }
-    let write_factory = (write_factory as *mut IDWriteFactory).as_mut().unwrap();
-
-    let mut rect: RECT = std::mem::zeroed();
-
-    GetClientRect(window, &mut rect as _);
-
-    // Create render target
-    let mut render: *mut ID2D1HwndRenderTarget = null_mut();
-    let result = d2d_factory.CreateHwndRenderTarget(
-        &D2D1_RENDER_TARGET_PROPERTIES {
-            pixelFormat: D2D1_PIXEL_FORMAT {
-                format: DXGI_FORMAT_UNKNOWN,
-                alphaMode: D2D1_ALPHA_MODE_PREMULTIPLIED,
-            },
-            ..Default::default()
-        },
-        &D2D1_HWND_RENDER_TARGET_PROPERTIES {
-            hwnd: window,
-            pixelSize: D2D1_SIZE_U { height: (rect.bottom - rect.top) as _, width: (rect.right - rect.left) as _ },
-            ..Default::default()
-        },
-        &mut render as _,
-    );
-    if FAILED(result) {
-        return Err(format!("Could not create HWND render target: {:X}", result).into());
-    }
-
-    Ok((render.as_mut().unwrap(), write_factory))
+pub(crate) trait ToError {
+    fn to_err(self) -> Result<()>;
 }
 
-pub unsafe fn hijack_window(class_name: &str, window_name: &str) -> memory::Result<HWND> {
+impl ToError for NTSTATUS {
+    fn to_err(self) -> Result<()> {
+        if FAILED(self) {
+            Err(anyhow!("{} ({:X})", error_code_to_message(self as _).unwrap_or_default(), self))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+
+pub unsafe fn hijack_window(class_name: &str, window_name: &str) -> Result<HWND> {
     let window = FindWindowA(c_string!(class_name), c_string!(window_name));
     if window.is_null() {
-        return Err("Could not find NVIDIA GeForce Overlay window".into());
+        bail!("Could not find window with class name {} and window name {}", class_name, window_name);
     }
 
     // Get the window extended window style
@@ -115,8 +70,29 @@ pub unsafe fn hijack_window(class_name: &str, window_name: &str) -> memory::Resu
     Ok(window)
 }
 
-// TODO: There is a memory leak here
-pub unsafe fn create_d3d_device(window: HWND) -> memory::Result<LPDIRECT3DDEVICE9> {
+pub struct D3DDevice9(pub(crate) LPDIRECT3DDEVICE9);
+
+impl Drop for D3DDevice9 {
+    fn drop(&mut self) {
+        unsafe { (*self.0).Release() };
+    }
+}
+
+impl Deref for D3DDevice9 {
+    type Target = IDirect3DDevice9;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.0.as_ref().unwrap() }
+    }
+}
+
+impl DerefMut for D3DDevice9 {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.0.as_mut().unwrap() }
+    }
+}
+
+pub unsafe fn create_d3d_device(window: HWND) -> anyhow::Result<D3DDevice9> {
     let mut params = D3DPRESENT_PARAMETERS {
         Windowed: 1,
         SwapEffect: D3DSWAPEFFECT_DISCARD,
@@ -137,7 +113,7 @@ pub unsafe fn create_d3d_device(window: HWND) -> memory::Result<LPDIRECT3DDEVICE
     let d3d = {
         let device = Direct3DCreate9(D3D_SDK_VERSION);
         if device.is_null() {
-            return Err("direct3d device was null".into());
+            bail!("direct3d device was null");
         }
         device.as_mut().unwrap()
     };
@@ -148,14 +124,7 @@ pub unsafe fn create_d3d_device(window: HWND) -> memory::Result<LPDIRECT3DDEVICE
         D3DCREATE_HARDWARE_VERTEXPROCESSING,
         &mut params,
         &mut device,
-    );
-    if FAILED(result) {
-        return Err(format!("Could not create Direct3d device: {:X}", result).into());
-    }
+    ).to_err().context("Failed to create D3D device")?;
 
-    Ok(device)
-}
-
-pub unsafe fn create_dx11_device(window: HWND) -> memory::Result<()> {
-    D3D11CreateDevice()
+    Ok(D3DDevice9(device))
 }
