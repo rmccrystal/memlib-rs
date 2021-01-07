@@ -1,14 +1,16 @@
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::OsStrExt;
 
+use cached::proc_macro::cached;
 use winapi::_core::ptr::{null, null_mut};
 use winapi::ctypes::c_void;
 use winapi::Interface;
+use winapi::shared::d3d9::IDirect3D9;
 use winapi::shared::dxgiformat::DXGI_FORMAT_UNKNOWN;
 use winapi::shared::windef::{HWND, RECT};
 use winapi::shared::winerror::FAILED;
-use winapi::um::d2d1::{D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_FEATURE_LEVEL_DEFAULT, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1_RENDER_TARGET_USAGE_NONE, D2D1CreateFactory, ID2D1Factory, ID2D1HwndRenderTarget, ID2D1Brush, D2D1_COLOR_F, D2D1_BRUSH_PROPERTIES, ID2D1SolidColorBrush, ID2D1StrokeStyle, ID2D1BrushVtbl, ID2D1RenderTarget, D2D1_ANTIALIAS_MODE_ALIASED, D2D1_ROUNDED_RECT, D2D1_POINT_2F, D2D1_DRAW_TEXT_OPTIONS_NONE, D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE, D2D1_TEXT_ANTIALIAS_MODE_ALIASED, D2D1_TEXT_ANTIALIAS_MODE_DEFAULT};
-use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT, D2D1_SIZE_U, D2D1_RECT_F, DWRITE_MEASURING_MODE_NATURAL};
+use winapi::um::d2d1::{D2D1_ANTIALIAS_MODE_ALIASED, D2D1_BRUSH_PROPERTIES, D2D1_COLOR_F, D2D1_DRAW_TEXT_OPTIONS_NONE, D2D1_FACTORY_TYPE_MULTI_THREADED, D2D1_FEATURE_LEVEL_DEFAULT, D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_POINT_2F, D2D1_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1_RENDER_TARGET_USAGE_NONE, D2D1_ROUNDED_RECT, D2D1_TEXT_ANTIALIAS_MODE_ALIASED, D2D1_TEXT_ANTIALIAS_MODE_DEFAULT, D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE, D2D1CreateFactory, ID2D1Brush, ID2D1BrushVtbl, ID2D1Factory, ID2D1HwndRenderTarget, ID2D1RenderTarget, ID2D1SolidColorBrush, ID2D1StrokeStyle};
+use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT, D2D1_RECT_F, D2D1_SIZE_U, DWRITE_MEASURING_MODE_NATURAL};
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
 use winapi::um::dwrite::{DWRITE_FACTORY_TYPE_SHARED, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_WEIGHT_REGULAR, DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat};
 use winapi::um::unknwnbase::IUnknown;
@@ -17,22 +19,10 @@ use winapi::um::winuser::{FindWindowA, GetClientRect, GetWindowLongA, GWL_EXSTYL
 
 use crate::math::Vector2;
 use crate::memory::Result;
-use crate::overlay::{BoxOptions, CircleOptions, LineOptions, OverlayInterface, TextOptions, Color, Font, TextStyle};
-use cached::proc_macro::cached;
+use crate::overlay::{BoxOptions, CircleOptions, Color, Font, LineOptions, OverlayInterface, TextOptions, TextStyle};
 
-macro_rules! c_string {
-    ($str:expr) => {std::ffi::CString::new($str).unwrap().as_ptr()};
-}
+use super::util;
 
-macro_rules! c_string_w {
-    ($str:expr) => {{
-        let ptr: *const u16 = {
-            let text: Vec<u16> = OsStr::new($str).encode_wide(). chain(Some(0).into_iter()).collect();
-            text.as_ptr()
-        };
-        ptr
-    }}
-}
 
 pub struct NvidiaOverlay {
     window: HWND,
@@ -43,8 +33,8 @@ pub struct NvidiaOverlay {
 impl NvidiaOverlay {
     pub fn init() -> Result<Self> {
         unsafe {
-            let window = Self::get_window()?;
-            let (render, write_factory) = Self::init_d2d(window)?;
+            let window = util::hijack_window("CEF-OSC-WIDGET", "NVIDIA GeForce Overlay")?;
+            let (render, write_factory) = util::init_d2d(window)?;
 
             let render: &'static ID2D1RenderTarget = &*render;
 
@@ -54,92 +44,6 @@ impl NvidiaOverlay {
         }
     }
 
-    unsafe fn get_window() -> Result<HWND> {
-        let window = FindWindowA(c_string!("CEF-OSC-WIDGET"), c_string!("NVIDIA GeForce Overlay"));
-        if window.is_null() {
-            return Err("Could not find NVIDIA GeForce Overlay window".into());
-        }
-
-        // Get the window extended window style
-        let style = GetWindowLongA(window, GWL_EXSTYLE);
-
-        // Set the window style to transparent
-        SetWindowLongPtrA(window, GWL_EXSTYLE, (style | WS_EX_TRANSPARENT as i32) as _);
-
-        DwmExtendFrameIntoClientArea(window, &MARGINS {
-            cxLeftWidth: -1,
-            cxRightWidth: -1,
-            cyBottomHeight: -1,
-            cyTopHeight: -1,
-        });
-
-        SetLayeredWindowAttributes(window, 0, 0xFF, 0x02);
-
-        // Set window as topmost
-        SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-
-        ShowWindow(window, SW_SHOW);
-
-        Ok(window)
-    }
-
-    unsafe fn init_d2d(window: HWND) -> Result<(&'static ID2D1HwndRenderTarget, &'static IDWriteFactory)> {
-        let mut d2d_factory: *mut c_void = null_mut();
-        let result = D2D1CreateFactory(
-            D2D1_FACTORY_TYPE_MULTI_THREADED,
-            &ID2D1Factory::uuidof(),
-            null(),
-            &mut d2d_factory,
-        );
-        if FAILED(result) {
-            return Err(format!("Could not create D2D1 factory: {:X}", result).into());
-        }
-        let d2d_factory = (d2d_factory as *mut ID2D1Factory).as_mut().unwrap();
-
-        let mut write_factory: *mut IUnknown = null_mut();
-        let result = DWriteCreateFactory(
-            DWRITE_FACTORY_TYPE_SHARED,
-            &IDWriteFactory::uuidof(),
-            &mut write_factory,
-        );
-        if FAILED(result) {
-            return Err(format!("Could not create D2D1 write factory: {:X}", result).into());
-        }
-        let write_factory = (write_factory as *mut IDWriteFactory).as_mut().unwrap();
-
-        Self::init_fonts(write_factory);
-
-        let mut rect: RECT = std::mem::zeroed();
-
-        GetClientRect(window, &mut rect as _);
-
-        // Create render target
-        let mut render: *mut ID2D1HwndRenderTarget = null_mut();
-        let result = d2d_factory.CreateHwndRenderTarget(
-            &D2D1_RENDER_TARGET_PROPERTIES {
-                pixelFormat: D2D1_PIXEL_FORMAT {
-                    format: DXGI_FORMAT_UNKNOWN,
-                    alphaMode: D2D1_ALPHA_MODE_PREMULTIPLIED,
-                },
-                ..Default::default()
-            },
-            &D2D1_HWND_RENDER_TARGET_PROPERTIES {
-                hwnd: window,
-                pixelSize: D2D1_SIZE_U { height: (rect.bottom - rect.top) as _, width: (rect.right - rect.left) as _ },
-                ..Default::default()
-            },
-            &mut render as _,
-        );
-        if FAILED(result) {
-            return Err(format!("Could not create HWND render target: {:X}", result).into());
-        }
-
-        Ok((render.as_mut().unwrap(), write_factory))
-    }
-
-    unsafe fn init_fonts(write_factory: &mut IDWriteFactory) {
-        // TODO
-    }
 
     fn create_brush(&mut self, color: Color) -> *mut ID2D1Brush {
         unsafe {
@@ -162,7 +66,7 @@ impl NvidiaOverlay {
         }
     }
 
-    pub fn create_text_format(&self, font: Font, mut size: f32) -> *mut IDWriteTextFormat {
+    pub fn create_text_format(&self, font: Font, size: f32) -> *mut IDWriteTextFormat {
         __create_text_format(self.write_factory as *const _ as _, font, size as _) as _
     }
 }
