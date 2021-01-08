@@ -25,7 +25,6 @@ fn main() {
     //
     // println!("{:?}", handle.read_memory::<u32>(1000000000));
 
-    // let mut ov = overlay::nvidia::NvidiaOverlay::init().unwrap();
     let window = unsafe { overlay::util::hijack_window("CEF-OSC-WIDGET", "NVIDIA GeForce Overlay").unwrap() };
     let mut imgui = Imgui::from_window(window).unwrap();
 
@@ -84,29 +83,4 @@ fn main() {
                 );
             });
     })
-
-    // let mut overlay = NvidiaOverlay::init().unwrap();
-    // let mut timer = LoopTimer::new(50);
-
-    // overlay.begin();overlay.end();return;
-    // loop {
-    //     timer.wait();
-    //     overlay.begin();
-    //
-    //     overlay.draw_text(Vector2 { x: 300.0, y: 200.0 }, "test123", TextOptions::default()
-    //         .color(Color::white())
-    //         .font(Font::Tahoma)
-    //         .style(TextStyle::Shadow)
-    //         .font_size(Some(20.0))
-    //     );
-    //
-    //     overlay.draw_text(Vector2 { x: 200.0, y: 200.0 }, "asdflkjerioqu", TextOptions::default()
-    //         .color(Color::from_rgb(255, 0, 0))
-    //         .font(Font::Pixel)
-    //         .style(TextStyle::Outlined)
-    //         .font_size(Some(10.0))
-    //     );
-    //
-    //     overlay.end();
-    // }
 }
