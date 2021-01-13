@@ -1,9 +1,9 @@
-use super::{Address, read_memory};
+use super::{read_memory, Address};
 
 use log::*;
 use std::cmp::{PartialEq, PartialOrd};
-use std::marker::PhantomData;
 use std::io::BufRead;
+use std::marker::PhantomData;
 
 pub struct MemoryScan<T> {
     pub matches: Vec<(Address, T)>,
@@ -20,8 +20,8 @@ pub enum ScanValue<T> {
 
 /// Implements cheat engine like memory scanning
 impl<T> MemoryScan<T>
-    where
-        T: PartialEq + PartialOrd + Sized + Clone,
+where
+    T: PartialEq + PartialOrd + Sized + Clone,
 {
     /// Cheat engine like memory scanning
     /// Creates a MemoryScan object containing addresses within address_range
@@ -48,12 +48,14 @@ impl<T> MemoryScan<T>
         Self::from_addresses(addresses)
     }
 
-
     /// Creates a MemoryScan from a list of addresses
     pub fn from_addresses(addresses: Vec<Address>) -> MemoryScan<T> {
         debug!("Created a memory scan with {} addresses", addresses.len());
 
-        let matches = addresses.iter().map(|&addr| (addr, read_memory::<T>(addr))).collect();
+        let matches = addresses
+            .iter()
+            .map(|&addr| (addr, read_memory::<T>(addr)))
+            .collect();
 
         MemoryScan {
             matches,
@@ -84,10 +86,10 @@ impl<T> MemoryScan<T>
     }
 }
 
-
 // Creates a new command based scan using STDIN
 pub fn new_interactive_scan<T>(address_range: (Address, Address), fast_scan: bool)
-    where T: PartialEq + PartialOrd + Sized + Clone + std::str::FromStr + std::fmt::Display
+where
+    T: PartialEq + PartialOrd + Sized + Clone + std::str::FromStr + std::fmt::Display,
 {
     let mut memory_scan: MemoryScan<T> = MemoryScan::new(address_range, fast_scan);
 
@@ -104,26 +106,25 @@ pub fn new_interactive_scan<T>(address_range: (Address, Address), fast_scan: boo
             "changed" => ScanValue::Changed::<T>,
             "print" => {
                 for scan_match in &memory_scan.matches {
-                    println!("\t{} at 0x{:X} (offset 0x{:X})", scan_match.1, scan_match.0, scan_match.0 - address_range.0)
+                    println!(
+                        "\t{} at 0x{:X} (offset 0x{:X})",
+                        scan_match.1,
+                        scan_match.0,
+                        scan_match.0 - address_range.0
+                    )
                 }
                 continue;
-            },
+            }
             value => {
                 let input = value.parse::<T>();
 
                 // Print if the input is not a `ScanType`
                 match input {
                     Err(_) => {
-                        println!(
-                            "[-] {} is not a valid {}",
-                            line,
-                            std::any::type_name::<T>()
-                        );
+                        println!("[-] {} is not a valid {}", line, std::any::type_name::<T>());
                         continue;
                     }
-                    Ok(val) => {
-                        ScanValue::Value(val)
-                    }
+                    Ok(val) => ScanValue::Value(val),
                 }
             }
         };
@@ -134,7 +135,12 @@ pub fn new_interactive_scan<T>(address_range: (Address, Address), fast_scan: boo
         println!("[+] Found {} addresses", &memory_scan.matches.len());
         if memory_scan.matches.len() < 20 {
             for scan_match in &memory_scan.matches {
-                println!("\t{} at 0x{:X} (offset 0x{:X})", scan_match.1, scan_match.0, scan_match.0 - address_range.0)
+                println!(
+                    "\t{} at 0x{:X} (offset 0x{:X})",
+                    scan_match.1,
+                    scan_match.0,
+                    scan_match.0 - address_range.0
+                )
             }
         }
     }

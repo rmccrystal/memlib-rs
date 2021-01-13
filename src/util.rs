@@ -1,8 +1,8 @@
+use crate::math::Vector2;
+use log::*;
 use pretty_hex::*;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use log::*;
-use crate::math::Vector2;
 
 /// A timer which runs a loop at a consistent rate
 /// For example, in a game hack, we might want to run the main
@@ -37,7 +37,10 @@ impl LoopTimer {
 
     /// Waits until we have waited enough time since the `last_tick` according to the `tickrate`
     pub fn wait(&mut self) {
-        trace!("Loop took {} ms", (Instant::now() - self.last_tick).as_millis());
+        trace!(
+            "Loop took {} ms",
+            (Instant::now() - self.last_tick).as_millis()
+        );
 
         // Print if the loop took too long
         let mut had_to_sleep = false;
@@ -48,10 +51,10 @@ impl LoopTimer {
         }
         if !had_to_sleep {
             let _ms_diff = (Instant::now() - self.last_tick).as_millis();
-                // warn!("Loop took {} ms too long (delay: {}ms, took: {}ms)",
-                //       ms_diff - self.ms_delay as u128,
-                //       self.ms_delay,
-                //       ms_diff);
+            // warn!("Loop took {} ms too long (delay: {}ms, took: {}ms)",
+            //       ms_diff - self.ms_delay as u128,
+            //       self.ms_delay,
+            //       ms_diff);
         }
 
         // Update last tick
@@ -88,5 +91,5 @@ pub fn get_boudning_box(points: Vec<Vector2>) -> (Vector2, Vector2) {
         }
     }
 
-    (Vector2{x: left, y: bottom}, Vector2{x: right, y: top})
+    (Vector2 { x: left, y: bottom }, Vector2 { x: right, y: top })
 }

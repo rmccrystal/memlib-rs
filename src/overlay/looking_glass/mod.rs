@@ -1,21 +1,21 @@
 use log::*;
-use std::path::Path;
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::{Write};
+use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
 
-use crate::overlay::{OverlayInterface};
-use std::collections::VecDeque;
 use super::types::*;
 use crate::math::Vector2;
+use crate::overlay::OverlayInterface;
+use std::collections::VecDeque;
 
 pub struct LookingGlassOverlay {
     pipe: File,
     delay_buf: VecDeque<Command>,
     frame: Frame,
-    delay: usize,       // if the overlay is faster than the screen, there should be a delay
-    anti_aliasing: bool
+    delay: usize, // if the overlay is faster than the screen, there should be a delay
+    anti_aliasing: bool,
 }
 
 impl LookingGlassOverlay {
@@ -31,14 +31,15 @@ impl LookingGlassOverlay {
             delay_buf: VecDeque::new(),
             frame: Frame::new(),
             delay,
-            anti_aliasing
+            anti_aliasing,
         })
     }
 
     /// internal function
     fn _send_command(&mut self, command: Command) {
         trace!("Sending command to looking glass: {:?}", command);
-        let buf = bincode::serialize(&command).expect("Failed to serialize command for looking-glass overlay");
+        let buf = bincode::serialize(&command)
+            .expect("Failed to serialize command for looking-glass overlay");
         if let Err(err) = self.pipe.write_all(buf.as_slice()) {
             error!("Error sending to looking-glass pipe: {}", err);
         }
@@ -59,7 +60,10 @@ impl LookingGlassOverlay {
             return;
         }
 
-        let command = self.delay_buf.pop_front().expect("Error with delay_buf on looking-glass overlay");
+        let command = self
+            .delay_buf
+            .pop_front()
+            .expect("Error with delay_buf on looking-glass overlay");
         self._send_command(command);
     }
 
@@ -82,10 +86,10 @@ impl OverlayInterface for LookingGlassOverlay {
         //     p1 = p1.round();
         //     p2 = p2.round();
         // }
-        self.add_draw_command(DrawCommand::Line{
+        self.add_draw_command(DrawCommand::Line {
             p1: p1.as_tuple(),
             p2: p2.as_tuple(),
-            options
+            options,
         })
     }
 
@@ -94,26 +98,26 @@ impl OverlayInterface for LookingGlassOverlay {
             p1 = p1.round();
             p2 = p2.round();
         }
-        self.add_draw_command(DrawCommand::Box{
+        self.add_draw_command(DrawCommand::Box {
             p1: p1.as_tuple(),
             p2: p2.as_tuple(),
-            options
+            options,
         })
     }
 
     fn draw_text(&mut self, origin: Vector2, text: &str, options: TextOptions) {
-        self.add_draw_command(DrawCommand::Text{
+        self.add_draw_command(DrawCommand::Text {
             origin: origin.as_tuple(),
             text: text.to_string(),
-            options
+            options,
         })
     }
-    
+
     fn draw_circle(&mut self, origin: Vector2, radius: f32, options: CircleOptions) {
         self.add_draw_command(DrawCommand::Circle {
             origin: origin.as_tuple(),
             radius,
-            options
+            options,
         })
     }
 }

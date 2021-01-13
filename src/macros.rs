@@ -53,5 +53,5 @@ macro_rules! unwrap_or_return {
             Some(x) => x,
             None => return,
         }
-    }
+    };
 }

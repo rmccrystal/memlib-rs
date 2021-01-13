@@ -15,6 +15,6 @@ lazy_static::lazy_static! {
 }
 
 /// Runs an async function from a non async context
-pub fn run_async<T>(future: impl std::future::Future<Output=T>) -> T {
+pub fn run_async<T>(future: impl std::future::Future<Output = T>) -> T {
     HANDLE.block_on(future)
 }

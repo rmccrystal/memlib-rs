@@ -1,9 +1,9 @@
 #![cfg(windows)]
 #![allow(clippy::missing_safety_doc)]
 
-use winapi::um::*;
-use log::*;
 use enigo::MouseControllable;
+use log::*;
+use winapi::um::*;
 
 /// Gets a down or up state of a certain key using a VK key code:
 /// https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes

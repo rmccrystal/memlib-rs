@@ -18,7 +18,8 @@ pub fn connect(address: &std::net::SocketAddr) -> Result<(), Box<dyn std::error:
             tarpc::serde_transport::tcp::connect(&address, tokio_serde::formats::Json::default())
                 .await?;
         let client =
-            system_host::SystemHandleClient::new(tarpc::client::Config::default(), transport).spawn()?;
+            system_host::SystemHandleClient::new(tarpc::client::Config::default(), transport)
+                .spawn()?;
         unsafe { CONNECTION = Some(client) }
         info!("Connected to system {}", &address);
         Ok(())

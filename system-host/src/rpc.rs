@@ -3,7 +3,7 @@ use crate::system;
 use futures::{future, StreamExt};
 use log::*;
 use tarpc::context::Context;
-use tarpc::server::{Handler};
+use tarpc::server::Handler;
 use tarpc::{client, server};
 use tokio::stream;
 

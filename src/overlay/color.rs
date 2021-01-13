@@ -63,8 +63,11 @@ impl Color {
         Self::from_rgb((r * 255.0) as _, (g * 255.0) as _, (b * 255.0) as _)
     }
 
-    pub fn from_hex(hex: u32) -> Self {
-        let hex = hex.swap_bytes();
+    pub fn from_hex(mut hex: u32) -> Self {
+        // If the hex doesn't include an A value, assume 0xFF
+        if hex <= 0xFFFFFF {
+            hex += 0xFF000000;
+        }
         Self::new(hex)
     }
 
@@ -83,7 +86,7 @@ impl Color {
             (((self.0) & 0xFF) as u8),
             ((self.0 >> 8) & 0xFF) as u8,
             ((self.0 >> 16) & 0xFF) as u8,
-            ((self.0 >> 24) & 0xFF) as u8
+            ((self.0 >> 24) & 0xFF) as u8,
         )
     }
 

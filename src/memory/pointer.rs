@@ -1,7 +1,7 @@
 use super::*;
 
-use std::marker::PhantomData;
 use std::fmt;
+use std::marker::PhantomData;
 
 /// Represents a pointer to a type in external process memory
 /// This has the same memory layout as an `Address`, so this can be

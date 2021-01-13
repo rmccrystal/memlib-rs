@@ -1,7 +1,7 @@
-use serde::{Serialize, Deserialize};
-use winapi::shared::ntdef::NTSTATUS;
-use std::fmt::Formatter;
 use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
+use serde::{Deserialize, Serialize};
+use std::fmt::Formatter;
+use winapi::shared::ntdef::NTSTATUS;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ModuleInfo {
@@ -13,7 +13,7 @@ pub struct ModuleInfo {
 #[derive(Serialize, Deserialize, Clone)]
 pub enum KernelError {
     Message(String),
-    Status(NTSTATUS)
+    Status(NTSTATUS),
 }
 
 impl std::fmt::Debug for KernelError {
@@ -22,8 +22,8 @@ impl std::fmt::Debug for KernelError {
             KernelError::Message(msg) => write!(f, "{}", msg),
             KernelError::Status(status) => match error_code_to_message(*status as _) {
                 Some(error) => write!(f, "{} ({:X})", error, status),
-                None => write!(f, "{:X}", status)
-            }
+                None => write!(f, "{:X}", status),
+            },
         };
         Ok(())
     }
@@ -74,7 +74,7 @@ pub enum Request {
     WriteMemory {
         pid: Pid,
         address: u64,
-        buf: Vec<u8>
+        buf: Vec<u8>,
     },
 }
 
@@ -86,4 +86,3 @@ pub enum Response {
     ReadMemory(Vec<u8>),
     WriteMemory,
 }
-

@@ -14,8 +14,8 @@ pub mod scan;
 
 pub use findpattern::find_pattern;
 pub use global_handle::*;
-pub use scan::*;
 pub use pointer::*;
+pub use scan::*;
 
 use handle_interfaces::*;
 use std::borrow::Borrow;

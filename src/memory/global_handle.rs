@@ -7,8 +7,6 @@ use super::Handle;
 use super::{Address, Module, ProcessInfo, Result};
 use log::*;
 
-
-
 /// The global handle object
 static mut GLOBAL_HANDLE: Option<Handle> = None;
 

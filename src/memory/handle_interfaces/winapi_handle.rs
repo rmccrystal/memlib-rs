@@ -12,8 +12,6 @@ use winapi::um::tlhelp32::{
     MODULEENTRY32, PROCESSENTRY32, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS,
 };
 
-
-
 use std::mem;
 
 use winapi::um::errhandlingapi::GetLastError;

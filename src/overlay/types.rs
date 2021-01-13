@@ -1,23 +1,23 @@
 #![allow(dead_code)]
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Commands are sent through the pipe to control the overlay
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Command {
     UpdateFrame(Frame),
-    ClearScreen
+    ClearScreen,
 }
 
 /// A frame state of the overlay
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Frame {
-    pub commands: Vec<DrawCommand>
+    pub commands: Vec<DrawCommand>,
 }
 
 impl Frame {
     pub fn new() -> Self {
-        Self{commands: vec![]}
+        Self { commands: vec![] }
     }
 }
 
@@ -27,7 +27,7 @@ pub enum DrawCommand {
     Line {
         p1: Point,
         p2: Point,
-        options: LineOptions
+        options: LineOptions,
     },
     Box {
         p1: Point,
@@ -70,7 +70,7 @@ impl Default for LineOptions {
     fn default() -> Self {
         LineOptions {
             color: DEFAULT_COLOR,
-            width: 1.0
+            width: 1.0,
         }
     }
 }
@@ -94,7 +94,7 @@ impl Default for BoxOptions {
             color: DEFAULT_COLOR,
             rounding: 0.0,
             width: 1.0,
-            filled: false
+            filled: false,
         }
     }
 }
@@ -126,7 +126,7 @@ impl Default for TextOptions {
             centered_horizontal: false,
             centered_vertical: false,
             style: TextStyle::Shadow,
-            shadow_color: 0xAA000000
+            shadow_color: 0xAA000000,
         }
     }
 }
@@ -159,14 +159,14 @@ pub enum Font {
     Default,
     Pixel,
     Tahoma,
-    Verdana
+    Verdana,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CircleOptions {
     pub color: u32,
     pub filled: bool,
-    pub width: f32
+    pub width: f32,
 }
 
 impl Default for CircleOptions {
@@ -174,7 +174,7 @@ impl Default for CircleOptions {
         Self {
             color: DEFAULT_COLOR,
             filled: false,
-            width: 1.0
+            width: 1.0,
         }
     }
 }

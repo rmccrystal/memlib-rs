@@ -1,6 +1,5 @@
-
-use std::f32::consts::PI;
 use impl_ops::*;
+use std::f32::consts::PI;
 use std::ops;
 
 #[repr(C)]
@@ -36,12 +35,12 @@ impl_op_ex!(+ |a: &Vector3, b: &Vector3| -> Vector3 {
         }
 });
 
-impl_op_ex!(- |a: &Vector3, b: &Vector3| -> Vector3 {
-        Vector3{
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        }
+impl_op_ex!(-|a: &Vector3, b: &Vector3| -> Vector3 {
+    Vector3 {
+        x: a.x - b.x,
+        y: a.y - b.y,
+        z: a.z - b.z,
+    }
 });
 
 #[repr(C)]
@@ -66,7 +65,31 @@ impl Vector2 {
 
     // Rounds to the nearest whole number
     pub fn round(&self) -> Self {
-        Self{x: self.x as i32 as f32, y: self.y as i32 as f32}
+        Self {
+            x: self.x as i32 as f32,
+            y: self.y as i32 as f32,
+        }
+    }
+}
+
+impl Into<[f32; 2]> for Vector2 {
+    fn into(self) -> [f32; 2] {
+        [self.x, self.y]
+    }
+}
+
+impl From<(f32, f32)> for Vector2 {
+    fn from(n: (f32, f32)) -> Self {
+        Self { x: n.0, y: n.1 }
+    }
+}
+
+impl From<(i32, i32)> for Vector2 {
+    fn from(n: (i32, i32)) -> Self {
+        Self {
+            x: n.0 as _,
+            y: n.1 as _,
+        }
     }
 }
 
@@ -80,11 +103,11 @@ impl_op_ex!(+ |a: &Vector2, b: &Vector2| -> Vector2 {
         }
 });
 
-impl_op_ex!(- |a: &Vector2, b: &Vector2| -> Vector2 {
-        Vector2{
-            x: a.x - b.x,
-            y: a.y - b.y,
-        }
+impl_op_ex!(-|a: &Vector2, b: &Vector2| -> Vector2 {
+    Vector2 {
+        x: a.x - b.x,
+        y: a.y - b.y,
+    }
 });
 
 #[repr(C)]
@@ -149,11 +172,11 @@ impl Angles2 {
     }
 }
 
-impl_op_ex!(- |a: &Angles2, b: &Angles2| -> Angles2 {
-        Angles2{
-            pitch: a.pitch - b.pitch,
-            yaw: a.yaw - b.yaw,
-        }
+impl_op_ex!(-|a: &Angles2, b: &Angles2| -> Angles2 {
+    Angles2 {
+        pitch: a.pitch - b.pitch,
+        yaw: a.yaw - b.yaw,
+    }
 });
 impl_op_ex!(+ |a: &Angles2, b: &Angles2| -> Angles2 {
         Angles2{

@@ -1,5 +1,5 @@
-use log::{Metadata, Record, LevelFilter, SetLoggerError, set_max_level, set_boxed_logger, Level};
 use colored::Colorize;
+use log::{set_boxed_logger, set_max_level, Level, LevelFilter, Metadata, Record, SetLoggerError};
 
 /// Implements a minimal logger that I like to use for my cheats
 pub struct MinimalLogger {

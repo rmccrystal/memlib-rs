@@ -5,4 +5,3 @@ pub trait SystemHandle {
     async fn get_key_state(key: i32) -> bool;
     async fn move_mouse_relative(dx: i32, dy: i32);
 }
-

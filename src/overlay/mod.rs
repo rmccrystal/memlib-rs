@@ -1,6 +1,7 @@
 mod types;
-pub use types::{Font, TextStyle, LineOptions, BoxOptions, TextOptions, CircleOptions};
+pub use types::{BoxOptions, CircleOptions, Font, LineOptions, TextOptions, TextStyle};
 
+// TODO: Fix overlay for linux
 #[cfg(target_os = "linux")]
 pub mod looking_glass;
 

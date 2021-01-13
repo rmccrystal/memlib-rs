@@ -36,32 +36,40 @@ impl DriverProcessHandle {
     pub(crate) fn send_request(&self, req: Request) -> std::result::Result<Response, KernelError> {
         // make the request
         let mut response = RunRequestResponse::Null;
-        let mut data = Data::RunRequest { req, response: &mut response as _ };
+        let mut data = Data::RunRequest {
+            req,
+            response: &mut response as _,
+        };
         self.call_hook(&mut data);
-
 
         match response {
             RunRequestResponse::Null => Err(KernelError::text("request was not handled in kernel")),
             RunRequestResponse::AllocBuffer(len) => {
                 // get the buffer
                 let mut data = Data::WriteBuffer {
-                    buffer: Vec::with_capacity(len)
+                    buffer: Vec::with_capacity(len),
                 };
                 self.call_hook(&mut data);
 
                 let buffer = if let Data::WriteBuffer { buffer } = data {
                     buffer
                 } else {
-                    return Err(KernelError::text("WriteBuffer request was turned into a different type of data enum"));
+                    return Err(KernelError::text(
+                        "WriteBuffer request was turned into a different type of data enum",
+                    ));
                 };
 
                 if buffer.len() != len {
-                    return Err(KernelError::text(&format!("Kernel wrote {} bytes while the response was {} bytes", buffer.len(), len)));
+                    return Err(KernelError::text(&format!(
+                        "Kernel wrote {} bytes while the response was {} bytes",
+                        buffer.len(),
+                        len
+                    )));
                 }
 
                 postcard::from_bytes(&buffer).unwrap()
             }
-            RunRequestResponse::Response(resp) => resp
+            RunRequestResponse::Response(resp) => resp,
         }
     }
 }
