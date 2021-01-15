@@ -1,35 +1,32 @@
 use core::ptr::null_mut;
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
+
 
 use anyhow::Result;
-use imgui::sys::{ImDrawList, ImFont_CalcTextSizeA, ImVec2, ImGuiWindowFlags_NoTitleBar, ImGuiWindowFlags_NoInputs};
+
 use imgui::*;
 use imgui_dx9_renderer::Renderer;
 use log::*;
 use winapi::_core::ptr::null;
-use winapi::shared::d3d9::{IDirect3DDevice9, LPDIRECT3DDEVICE9};
+
 use winapi::shared::d3d9types::{D3DCLEAR_TARGET, D3DCLEAR_ZBUFFER, D3DRS_ALPHABLENDENABLE, D3DRS_SCISSORTESTENABLE, D3DRS_ZENABLE, D3DCOLOR_RGBA};
-use winapi::shared::ntdef::FALSE;
-use winapi::shared::windef::{HWND, RECT, POINT};
+
+use winapi::shared::windef::{RECT, POINT};
 use winapi::um::profileapi::{QueryPerformanceCounter, QueryPerformanceFrequency};
-use winapi::um::winuser::{DispatchMessageA, GetClientRect, GetForegroundWindow, GetWindow, GetWindowLongA, PeekMessageA, SetWindowLongA, SetWindowPos, ShowWindow, TranslateMessage, UpdateWindow, GWL_STYLE, GW_HWNDPREV, MSG, PM_REMOVE, SWP_ASYNCWINDOWPOS, SWP_NOMOVE, SWP_NOSIZE, SW_SHOWDEFAULT, WS_CLIPSIBLINGS, WS_DISABLED, WS_POPUP, WS_VISIBLE, IsChild, GetCursorPos, ScreenToClient, WaitForInputIdle};
+use winapi::um::winuser::*;
 
 use crate::math::Vector2;
 use crate::overlay::imgui::fonts::create_fonts;
 use crate::overlay::util::{create_d3d_device, D3DDevice9};
-use crate::overlay::{BoxOptions, CircleOptions, Color, Draw, LineOptions, TextOptions, TextStyle};
+use crate::overlay::{BoxOptions, CircleOptions, Draw, LineOptions, TextOptions, TextStyle};
 
 use super::util::ToError;
 use winapi::shared::minwindef::TRUE;
-use winapi::um::minwinbase::OVERLAPPED;
+
 use super::types;
 use super::util::is_key_down;
 use super::window;
-use win_key_codes::*;
-use std::time::Instant;
-use winapi::um::sysinfoapi::InstallELAMCertificateInfo;
-use std::thread::{Thread, spawn};
+
 
 mod fonts;
 
@@ -340,7 +337,7 @@ impl Draw for OverlayWindow<'_, '_> {
         let text = unsafe { ImStr::from_ptr_unchecked(ImString::new(text).as_ptr()) };
 
         let font = *self.font_ids.get(&options.font).unwrap();
-        let font_size = options.font_size.unwrap_or(0.0);
+        let _font_size = options.font_size.unwrap_or(0.0);
 
         let font_token = self.ui.push_font(font);
 
@@ -380,7 +377,7 @@ impl Draw for OverlayWindow<'_, '_> {
         font_token.pop(&self.ui);
     }
 
-    fn draw_circle(&mut self, origin: Vector2, radius: f32, options: CircleOptions) {
+    fn draw_circle(&mut self, _origin: Vector2, _radius: f32, _options: CircleOptions) {
         unimplemented!()
     }
 }

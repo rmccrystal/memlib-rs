@@ -1,12 +1,12 @@
-use crate::math::Vector2;
+
 use crate::overlay::imgui::Imgui;
-use crate::overlay::{BoxOptions, Color, Draw, Font, LineOptions, TextOptions, TextStyle};
-use crate::util::LoopTimer;
+use crate::overlay::{Color, Draw, Font, LineOptions, TextOptions, TextStyle};
+
 use imgui::*;
-use std::ptr::null_mut;
-use winapi::um::libloaderapi::GetModuleHandleA;
-use winapi::um::winuser::{CreateWindowExA, WNDCLASSEXA};
-use imgui::NavInput::FocusNext;
+
+
+
+
 
 pub mod hacks;
 pub mod logger;
@@ -23,8 +23,8 @@ fn main() {
     let window = overlay::window::Window::hijack_nvidia().unwrap();
     let mut imgui = Imgui::from_window(window).unwrap();
 
-    let mut opened = true;
-    imgui.main_loop(move |ui, ctx| {
+    let _opened = true;
+    imgui.main_loop(move |ui, _ctx| {
         Window::new(im_str!("test"))
             .build(&ui, || {
                 ui.text(ui.io().framerate.to_string());

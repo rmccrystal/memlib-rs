@@ -12,11 +12,11 @@ use winapi::shared::d3d9types::{
     D3DSWAPEFFECT_DISCARD,
 };
 use winapi::shared::ntdef::NTSTATUS;
-use winapi::shared::windef::HWND;
+
 use winapi::shared::winerror::FAILED;
-use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
-use winapi::um::uxtheme::MARGINS;
-use winapi::um::winuser::{FindWindowA, GetAsyncKeyState, GetKeyState, GetWindowLongA, GWL_EXSTYLE, HWND_TOPMOST, SetLayeredWindowAttributes, SetWindowLongPtrA, SetWindowPos, ShowWindow, SW_SHOW, SWP_NOMOVE, SWP_NOSIZE, WS_EX_TRANSPARENT};
+
+
+use winapi::um::winuser::*;
 
 use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
 use crate::overlay::window::Window;
@@ -27,6 +27,7 @@ macro_rules! c_string {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! c_string_w {
     ($str:expr) => {{
         let ptr: *const u16 = {
