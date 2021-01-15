@@ -123,6 +123,7 @@ macro_rules! static_color {
 }
 
 // Colors from https://blueprintjs.com/docs/#core/colors
+// Source: https://github.com/palantir/blueprint/tree/develop/packages/core/src/common/colors.ts
 impl Color {
     static_color!(black, 0x10161A);
     static_color!(blue1, 0x0E5A8A);
@@ -211,11 +212,4 @@ impl Color {
     static_color!(violet4, 0xA854A8);
     static_color!(violet5, 0xC274C2);
     static_color!(white, 0xFFFFFF);
-}
-
-#[test]
-fn test_to_rgba() {
-    // let color = Color::from_rgba(1, 2, 3, 4);
-    // assert_eq!(color.to_rgba(), (1, 2, 3, 4));
-    // assert_eq!(color.0, 0x_01_02_03_04)
 }

@@ -75,8 +75,6 @@ impl Imgui {
     fn init_style(style: &mut Style) {
         style.anti_aliased_lines = true;
         style.anti_aliased_fill = true;
-        // style.anti_aliased_lines_use_tex = true;
-        // style.alpha = 0.2;
     }
 
     fn init_keymap(io: &mut Io) {
