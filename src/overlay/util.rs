@@ -1,10 +1,10 @@
-use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
-use anyhow::*;
 use std::ptr::null_mut;
+
+use anyhow::*;
 use winapi::_core::ops::{Deref, DerefMut};
 use winapi::shared::d3d9::{
-    Direct3DCreate9, IDirect3DDevice9, D3DADAPTER_DEFAULT, D3DCREATE_HARDWARE_VERTEXPROCESSING,
-    D3D_SDK_VERSION, LPDIRECT3DDEVICE9,
+    D3D_SDK_VERSION, D3DADAPTER_DEFAULT, D3DCREATE_HARDWARE_VERTEXPROCESSING, Direct3DCreate9,
+    IDirect3DDevice9, LPDIRECT3DDEVICE9,
 };
 use winapi::shared::d3d9caps::D3DPRESENT_INTERVAL_ONE;
 use winapi::shared::d3d9types::{
@@ -16,10 +16,10 @@ use winapi::shared::windef::HWND;
 use winapi::shared::winerror::FAILED;
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
 use winapi::um::uxtheme::MARGINS;
-use winapi::um::winuser::{
-    FindWindowA, GetWindowLongA, SetLayeredWindowAttributes, SetWindowLongPtrA, SetWindowPos,
-    ShowWindow, GWL_EXSTYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WS_EX_TRANSPARENT,
-};
+use winapi::um::winuser::{FindWindowA, GetAsyncKeyState, GetKeyState, GetWindowLongA, GWL_EXSTYLE, HWND_TOPMOST, SetLayeredWindowAttributes, SetWindowLongPtrA, SetWindowPos, ShowWindow, SW_SHOW, SWP_NOMOVE, SWP_NOSIZE, WS_EX_TRANSPARENT};
+
+use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
+use crate::overlay::window::Window;
 
 macro_rules! c_string {
     ($str:expr) => {
@@ -58,40 +58,8 @@ impl ToError for NTSTATUS {
     }
 }
 
-pub unsafe fn hijack_window(class_name: &str, window_name: &str) -> Result<HWND> {
-    let window = FindWindowA(c_string!(class_name), c_string!(window_name));
-    if window.is_null() {
-        bail!(
-            "Could not find window with class name {} and window name {}",
-            class_name,
-            window_name
-        );
-    }
-
-    // Get the window extended window style
-    let style = GetWindowLongA(window, GWL_EXSTYLE);
-
-    // Set the window style to transparent
-    SetWindowLongPtrA(window, GWL_EXSTYLE, (style | WS_EX_TRANSPARENT as i32) as _);
-
-    DwmExtendFrameIntoClientArea(
-        window,
-        &MARGINS {
-            cxLeftWidth: -1,
-            cxRightWidth: -1,
-            cyBottomHeight: -1,
-            cyTopHeight: -1,
-        },
-    );
-
-    SetLayeredWindowAttributes(window, 0, 0xFF, 0x02);
-
-    // Set window as topmost
-    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-
-    ShowWindow(window, SW_SHOW);
-
-    Ok(window)
+pub fn is_key_down(key: i32) -> bool {
+    unsafe { (GetAsyncKeyState(key)) != 0 }
 }
 
 pub struct D3DDevice9(pub(crate) LPDIRECT3DDEVICE9);
@@ -116,7 +84,8 @@ impl DerefMut for D3DDevice9 {
     }
 }
 
-pub unsafe fn create_d3d_device(window: HWND) -> anyhow::Result<D3DDevice9> {
+pub unsafe fn create_d3d_device(window: &Window) -> anyhow::Result<D3DDevice9> {
+    let window = window.hwnd;
     let mut params = D3DPRESENT_PARAMETERS {
         Windowed: 1,
         SwapEffect: D3DSWAPEFFECT_DISCARD,
@@ -141,15 +110,14 @@ pub unsafe fn create_d3d_device(window: HWND) -> anyhow::Result<D3DDevice9> {
         }
         device.as_mut().unwrap()
     };
-    let result = d3d
-        .CreateDevice(
-            D3DADAPTER_DEFAULT,
-            D3DDEVTYPE_HAL,
-            window,
-            D3DCREATE_HARDWARE_VERTEXPROCESSING,
-            &mut params,
-            &mut device,
-        )
+    d3d.CreateDevice(
+        D3DADAPTER_DEFAULT,
+        D3DDEVTYPE_HAL,
+        window,
+        D3DCREATE_HARDWARE_VERTEXPROCESSING,
+        &mut params,
+        &mut device,
+    )
         .to_err()
         .context("Failed to create D3D device")?;
 

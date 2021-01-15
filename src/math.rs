@@ -84,6 +84,12 @@ impl From<(f32, f32)> for Vector2 {
     }
 }
 
+impl From<[f32; 2]> for Vector2 {
+    fn from(n: [f32; 2]) -> Self {
+        Self { x: n[0], y: n[1] }
+    }
+}
+
 impl From<(i32, i32)> for Vector2 {
     fn from(n: (i32, i32)) -> Self {
         Self {

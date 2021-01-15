@@ -6,6 +6,7 @@ use imgui::*;
 use std::ptr::null_mut;
 use winapi::um::libloaderapi::GetModuleHandleA;
 use winapi::um::winuser::{CreateWindowExA, WNDCLASSEXA};
+use imgui::NavInput::FocusNext;
 
 pub mod hacks;
 pub mod logger;
@@ -19,38 +20,18 @@ pub mod util;
 pub mod macros;
 
 fn main() {
-    // let handle = memory::Handle::from(
-    //     memory::handle_interfaces::driver_handle::DriverProcessHandle::attach("notepad.exe").unwrap()
-    // );
-    //
-    // println!("{:?}", handle.read_memory::<u32>(1000000000));
-
-    let window = unsafe {
-        overlay::util::hijack_window("CEF-OSC-WIDGET", "NVIDIA GeForce Overlay").unwrap()
-    };
-
+    let window = overlay::window::Window::hijack_nvidia().unwrap();
     let mut imgui = Imgui::from_window(window).unwrap();
 
-    imgui.main_loop(move |frame| {
-        esp(frame);
-        let ui = &mut frame.ui;
-
-        let token = ui.push_font(*frame.font_ids.get(&Font::Verdana).unwrap());
-        Window::new(im_str!("Hello world"))
-            .size([300.0, 110.0], Condition::FirstUseEver)
-            .build(ui, || {
-                ui.text(im_str!("Hello world!"));
-                ui.text(im_str!("こんにちは世界！"));
-                ui.text(im_str!("This...is...imgui-rs!"));
-                ui.separator();
-                let mouse_pos = ui.io().mouse_pos;
-                ui.text(format!(
-                    "Mouse Position: ({:.1},{:.1})",
-                    mouse_pos[0], mouse_pos[1]
-                ));
-            });
-
-        token.pop(&ui);
+    let mut opened = true;
+    imgui.main_loop(move |ui, ctx| {
+        Window::new(im_str!("test"))
+            .build(&ui, || {
+                ui.text(ui.io().framerate.to_string());
+            })
+    }, move |overlay| {
+        overlay.draw_line(overlay.ui.io().mouse_pos.into(), (0, 0).into(), LineOptions::default().color(Color::rose5()).width(15.0));
+        esp(overlay);
     })
 }
 
@@ -62,10 +43,10 @@ pub fn esp(draw: &mut impl Draw) {
     );
     draw.draw_text(
         (400, 400).into(),
-        "flashed",
+        "test",
         TextOptions::default()
             .font(Font::Verdana)
-            .style(TextStyle::None)
+            .style(TextStyle::Shadow)
             .color(Color::from_rgb(255, 255, 255)),
     );
 }

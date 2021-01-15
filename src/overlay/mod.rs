@@ -13,5 +13,6 @@ mod overlay;
 pub(crate) mod util;
 
 pub mod imgui;
+pub mod window;
 
 pub use overlay::*;

@@ -5,6 +5,12 @@ use std::collections::HashMap;
 pub fn create_fonts(ctx: &mut Context) -> HashMap<types::Font, FontId> {
     let mut fonts = HashMap::new();
 
+    // First font is default
+    fonts.insert(
+        types::Font::Default,
+        ctx.fonts()
+            .add_font(&[FontSource::DefaultFontData { config: None }]),
+    );
     fonts.insert(
         types::Font::Pixel,
         ctx.fonts().add_font(&[FontSource::TtfData {
@@ -28,11 +34,6 @@ pub fn create_fonts(ctx: &mut Context) -> HashMap<types::Font, FontId> {
             size_pixels: 14.0,
             config: None,
         }]),
-    );
-    fonts.insert(
-        types::Font::Default,
-        ctx.fonts()
-            .add_font(&[FontSource::DefaultFontData { config: None }]),
     );
 
     fonts
