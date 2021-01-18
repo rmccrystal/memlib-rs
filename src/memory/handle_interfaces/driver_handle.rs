@@ -1,6 +1,6 @@
 use anyhow::*;
 use kernel_client::KernelHandle;
-use crate::memory::util::get_pid_by_name;
+use crate::memory::process::get_pid_by_name;
 use crate::memory::{ProcessHandleInterface, ProcessInfo, Module};
 
 pub struct DriverProcessHandle {

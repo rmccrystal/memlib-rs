@@ -14,6 +14,9 @@ pub mod handle_interfaces;
 pub mod scan;
 pub(crate) mod util;
 
+#[cfg(target_os = "windows")]
+pub mod process;
+
 pub use findpattern::find_pattern;
 pub use global_handle::*;
 pub use pointer::*;
