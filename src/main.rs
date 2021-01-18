@@ -3,9 +3,11 @@ use crate::overlay::imgui::Imgui;
 use crate::overlay::{Color, Draw, Font, LineOptions, TextOptions, TextStyle};
 
 use imgui::*;
-
-
-
+use crate::memory::Handle;
+use crate::memory::handle_interfaces::driver_handle::DriverProcessHandle;
+use std::fs::File;
+use std::io::Write;
+use crate::memory::handle_interfaces::winapi_handle::WinAPIProcessHandle;
 
 
 pub mod hacks;
@@ -20,6 +22,15 @@ pub mod util;
 pub mod macros;
 
 fn main() {
+    // let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
+    let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
+    let module = handle.get_module("notepad.exe").unwrap();
+    println!("base: {:X}, size: {:X}", module.base_address, module.size);
+    let dump = handle.dump_memory(module.get_memory_range());
+    File::create("dump.exe").unwrap().write_all(&dump).unwrap();
+}
+
+fn _main() {
     let window = overlay::window::Window::hijack_nvidia().unwrap();
     let mut imgui = Imgui::from_window(window).unwrap();
 

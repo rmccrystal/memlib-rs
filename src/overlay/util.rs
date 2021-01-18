@@ -18,7 +18,7 @@ use winapi::shared::winerror::FAILED;
 
 use winapi::um::winuser::*;
 
-use crate::memory::handle_interfaces::winapi_handle::error_code_to_message;
+use crate::memory::util::error_code_to_message;
 use crate::overlay::window::Window;
 
 macro_rules! c_string {

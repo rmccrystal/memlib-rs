@@ -90,7 +90,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
         Ok(())
     }
 
-    fn get_module(&self, module_name: &String) -> Option<Module> {
+    fn get_module(&self, module_name: &str) -> Option<Module> {
         // Create clones of self so this function can be immutable
         let mut process_list = self.process.clone();
 

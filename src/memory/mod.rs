@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use log::*;
+use anyhow::*;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -11,6 +12,7 @@ mod pointer;
 
 pub mod handle_interfaces;
 pub mod scan;
+pub(crate) mod util;
 
 pub use findpattern::find_pattern;
 pub use global_handle::*;
@@ -19,16 +21,13 @@ pub use scan::*;
 
 use handle_interfaces::*;
 use std::borrow::Borrow;
+use crate::memory::handle_interfaces::driver_handle::DriverProcessHandle;
 
 /// Defines the game address width based on if the `32-bit` feature is set
 #[cfg(feature = "32-bit")]
 pub type Address = u32;
 #[cfg(not(feature = "32-bit"))]
 pub type Address = u64;
-
-// There are going to be different error types throughout
-// this package, so define Result to use a boxed Error trait
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// An abstract interface for reading and writing memory to a process
 /// allowing cross platform interaction with a process.
@@ -46,7 +45,7 @@ pub trait ProcessHandleInterface {
     /// Gets information about a module in the form of a Module struct by name
     /// If the module is found, it will return Some with the Module object,
     /// Otherwise, it will return None
-    fn get_module(&self, module_name: &String) -> Option<Module>;
+    fn get_module(&self, module_name: &str) -> Option<Module>;
 
     /// Returns a struct of process info useful in some cheats
     fn get_process_info(&self) -> ProcessInfo;
@@ -66,14 +65,19 @@ pub struct Handle {
 
 impl<T: 'static + ProcessHandleInterface> From<T> for Handle {
     fn from(interface: T) -> Self {
-        Self::from_interface(Box::new(interface))
+        Self::from_boxed_interface(Box::new(interface))
     }
 }
 
 impl Handle {
     /// Creates a new Handle using the intrinsic process handle interface and the process name
-    pub fn from_interface(interface: Box<dyn ProcessHandleInterface>) -> Handle {
+    pub fn from_boxed_interface(interface: Box<dyn ProcessHandleInterface>) -> Self {
         Handle { interface }
+    }
+
+    pub fn from_interface<T: 'static + ProcessHandleInterface>(interface: T) -> Self {
+        let interface = Box::new(interface);
+        Self{interface}
     }
 
     #[cfg(target_os = "linux")]
@@ -81,10 +85,10 @@ impl Handle {
     /// memory and creates a process handle using it
     ///
     /// For example, if the program was running on linux
-    /// with a KVM, a KVm handle would be created
+    /// with a KVM, a KVM handle would be created
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
-        Ok(Self::from_interface(kvm_handle::KVMProcessHandle::attach(
+        Ok(Self::from_boxed_interface(kvm_handle::KVMProcessHandle::attach(
             &process_name,
         )?))
     }
@@ -94,13 +98,11 @@ impl Handle {
     /// memory and creates a process handle using it
     ///
     /// For example, if the program was running on linux
-    /// with a KVM, a KVm handle would be created
+    /// with a KVM, a KVM handle would be created
     pub fn new(process_name: impl ToString) -> Result<Handle> {
         let process_name = process_name.to_string();
         info!("Creating a process handle to {}", process_name);
-        Ok(Self::from_interface(
-            winapi_handle::WinAPIProcessHandle::attach(&process_name)?,
-        ))
+        Ok(Self::from_interface(DriverProcessHandle::attach(process_name)?))
     }
 
     /// Reads memory of type T from a process. If it is successful,
@@ -281,14 +283,5 @@ impl Module {
     /// Returns the range of memory for the entire module
     pub fn get_memory_range(&self) -> (Address, Address) {
         (self.base_address, self.base_address + self.size as Address)
-    }
-
-    pub fn dump(&self) -> Box<[u8]> {
-        dump_memory(self.get_memory_range())
-    }
-
-    /// Finds a pattern in the module address range
-    pub fn find_pattern(&self, pattern: &str) -> Option<Address> {
-        find_pattern(&self.dump(), pattern)
     }
 }
