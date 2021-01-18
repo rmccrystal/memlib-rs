@@ -306,7 +306,7 @@ impl<'a, 'ui> OverlayWindow<'a, 'ui> {
         self.color_token.pop(&self.ui);
     }
 
-    fn get_draw_list(&self) -> DrawListMut {
+    fn get_draw_list(&self) -> WindowDrawList {
         self.ui.get_window_draw_list()
     }
 }

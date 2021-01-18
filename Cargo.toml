@@ -25,7 +25,6 @@ futures = "0.3.5"
 lazy_static = "1.4.0"
 win_key_codes = "0.1.2"
 cached = "0.22.0"
-#imgui = { git = "https://github.com/imgui-rs/imgui-rs" }
 imgui = "0.6.1"
 anyhow = "1.0.37"
 [target.'cfg(target_os = "windows")'.dependencies]
@@ -34,10 +33,5 @@ imgui-dx9-renderer = "0.6.0"
 winapi = { version = "0.3.9", features = ["std", "memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi", "windef", "winuser", "d3d11", "dxgi", "dxgitype", "dwmapi", "uxtheme", "d3d9caps"] }
 postcard = { version = "0.5.1", features = ["alloc"] }
 [target.'cfg(target_os = "linux")'.dependencies]
-#libc = "0.2.74"
 vmread = "0.1.5"
 enigo = "0.0.14"
-
-[patch.crates-io]
-imgui = { git = "https://github.com/imgui-rs/imgui-rs" }
-
