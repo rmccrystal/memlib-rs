@@ -178,7 +178,7 @@ impl Handle {
             // The current offset should never be greater than the module_end_address
             if current_offset > memory_range.1 {
                 dbg!(current_offset, memory_range.1);
-                panic!("dump_module attempted to read invalid memory")
+                unreachable!("dump_module attempted to read invalid memory")
             }
             if current_offset == memory_range.1 {
                 break;

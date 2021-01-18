@@ -13,7 +13,7 @@ impl DriverProcessHandle {
     pub fn attach(process_name: impl ToString) -> Result<Self> {
         let process_name = process_name.to_string();
         let handle = KernelHandle::new()?;
-        let pid = get_pid_by_name(&process_name).ok_or(anyhow!("Could not find process {}", process_name))?;
+        let pid = get_pid_by_name(&process_name).ok_or_else(|| anyhow!("Could not find process {}", process_name))?;
 
         Ok(Self {
             handle,
@@ -27,12 +27,12 @@ impl ProcessHandleInterface for DriverProcessHandle {
     fn read_bytes(&self, address: u64, size: usize) -> Result<Box<[u8]>> {
         let mut buf = vec![0u8; size];
         self.handle.read_memory(self.pid as u64, address, &mut buf)?;
-
         Ok(buf.into_boxed_slice())
     }
 
     fn write_bytes(&self, address: u64, bytes: &[u8]) -> Result<()> {
-        self.handle.write_memory(self.pid as u64, address, bytes)
+        self.handle.write_memory(self.pid as u64, address, bytes)?;
+        Ok(())
     }
 
     fn get_module(&self, module_name: &str) -> Option<Module> {

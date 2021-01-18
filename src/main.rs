@@ -8,6 +8,7 @@ use crate::memory::Handle;
 use std::fs::File;
 use std::io::Write;
 use crate::memory::handle_interfaces::winapi_handle::WinAPIProcessHandle;
+use crate::memory::handle_interfaces::driver_handle::DriverProcessHandle;
 
 
 pub mod hacks;
@@ -22,10 +23,13 @@ pub mod util;
 pub mod macros;
 
 fn main() {
-    // let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
-    let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
+    let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
+    // let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
     let module = handle.get_module("notepad.exe").unwrap();
-    println!("base: {:X}, size: {:X}", module.base_address, module.size);
+    println!("base: {:X}, size: {}", module.base_address, module.size);
+
+    // dbg!(handle.read_bytes(0x1549dd065c0, 26));
+
     let dump = handle.dump_memory(module.get_memory_range());
     File::create("dump.exe").unwrap().write_all(&dump).unwrap();
 }
