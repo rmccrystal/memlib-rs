@@ -15,10 +15,8 @@ use winapi::um::tlhelp32::{
     CreateToolhelp32Snapshot, Module32First, Module32Next, MODULEENTRY32, Process32First,
     Process32Next, PROCESSENTRY32, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS,
 };
-use winapi::um::winbase::{
-    FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS, FormatMessageA,
-};
-use winapi::um::winnt::{LANG_NEUTRAL, PROCESS_ALL_ACCESS};
+
+use winapi::um::winnt::{PROCESS_ALL_ACCESS};
 
 use crate::memory::util;
 
