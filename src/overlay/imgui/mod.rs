@@ -20,13 +20,12 @@ use crate::overlay::imgui::fonts::create_fonts;
 use crate::overlay::util::{create_d3d_device, D3DDevice9};
 use crate::overlay::{BoxOptions, CircleOptions, Draw, LineOptions, TextOptions, TextStyle};
 
-use crate::winutil::ToError;
+use super::util::ToError;
 use winapi::shared::minwindef::TRUE;
 
 use super::types;
 use super::util::is_key_down;
 use super::window;
-use crate::overlay::window::WindowAffinity;
 
 
 mod fonts;
@@ -160,24 +159,43 @@ impl Imgui {
     }
 
     fn update_window(&mut self) {
+        let mut msg = unsafe { std::mem::zeroed() };
         unsafe {
-            // self.window.set_style(WS_POPUP | WS_CLIPSIBLINGS | WS_DISABLED | WS_VISIBLE | WS_EX_LAYERED | WS_EX_TRANSPARENT).unwrap();
-            self.window.set_above_foreground_window();
-            self.window.handle_messages();
+            let hwnd = self.window.hwnd;
+            let style = (WS_POPUP | WS_CLIPSIBLINGS | WS_DISABLED | WS_VISIBLE) as i32;
+            if GetWindowLongA(hwnd, GWL_STYLE) != style {
+                SetWindowLongA(hwnd, GWL_STYLE, style);
+            }
+
+            let foreground_window = GetWindow(GetForegroundWindow(), GW_HWNDPREV);
+            if foreground_window != hwnd {
+                SetWindowPos(
+                    hwnd,
+                    foreground_window,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_ASYNCWINDOWPOS | SWP_NOMOVE | SWP_NOSIZE,
+                );
+                UpdateWindow(hwnd);
+            }
+
+            if PeekMessageA(&mut msg, hwnd, 0, 0, PM_REMOVE) > 0 {
+                TranslateMessage(&msg);
+                DispatchMessageA(&msg);
+            }
 
             let io = self.context.io_mut();
 
-            let rect = self.window.get_rect();
+            let mut rect: RECT = Default::default();
+            GetClientRect(hwnd, &mut rect);
             io.display_size = [(rect.right - rect.left) as _, (rect.bottom - rect.top) as _];
 
             let mut current_time: i64 = 0;
             QueryPerformanceCounter(&mut current_time as *mut _ as _);
             io.delta_time = (current_time - self.time) as f32 / self.ticks_per_second as f32;
             self.time = current_time;
-
-            let mut affinity = 0;
-            GetWindowDisplayAffinity(self.window.hwnd, &mut affinity);
-            // dbg!(affinity);
         }
     }
 
@@ -204,7 +222,16 @@ impl Imgui {
     }
 
     pub fn main_loop(&mut self, mut run_ui: impl FnMut(&mut Ui, &RenderContext), mut run_overlay: impl FnMut(&mut OverlayWindow)) {
+        // let count = std::sync::Arc::new(std::sync::atomic::AtomicI64::new(0));
+        // let count_2 = count.clone();
+        // spawn(move || {
+        //     loop {
+        //         println!("{}", count_2.load(std::sync::atomic::Ordering::SeqCst));
+        //     }
+        // });
+
         loop {
+            // count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             self.update_window();
             self.update_mouse_pos();
             self.update_keyboard();
@@ -226,6 +253,8 @@ impl Imgui {
             };
 
             Self::present(&self.device, &mut self.renderer, &draw_data);
+
+            // println!("FPS: {}", 1.0 / ((timer.elapsed().as_nanos() as f64) * 0.000000001))
         }
     }
 }

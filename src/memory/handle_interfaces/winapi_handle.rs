@@ -18,8 +18,9 @@ use winapi::um::tlhelp32::{
 
 use winapi::um::winnt::{PROCESS_ALL_ACCESS};
 
+use crate::memory::util;
+
 use super::super::*;
-use crate::winutil::{get_pid_by_name, get_last_error_result, error_code_to_message, c_char_array_to_string};
 
 pub struct WinAPIProcessHandle {
     process_handle: HANDLE,
@@ -32,17 +33,52 @@ impl WinAPIProcessHandle {
     /// trait using ReadProcessMemory and WriteProcessMemory
     pub fn attach(process_name: impl ToString) -> Result<Self> {
         let process_name = process_name.to_string();
-        let pid = get_pid_by_name(&process_name).ok_or_else(|| anyhow!("Could not find {}", process_name))?;
 
-        let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
+        // https://stackoverflow.com/a/865201/11639049
+        // Create an empty PROCESSENTRY32 struct
+        let mut entry: PROCESSENTRY32 = unsafe { mem::zeroed() };
+        entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
 
-        get_last_error_result(process_handle).context("OpenProcess failed")?;
+        // Take a snapshot of every process
+        let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
 
-        return Ok(WinAPIProcessHandle {
-            process_handle,
-            pid,
-            process_name,
-        });
+        unsafe {
+            // TODO: This doesn't include the first process
+            // TODO: This doesn't have error handling for Process32First/Next. use GetLastError
+            if Process32First(snapshot, &mut entry) == 1 {
+                while Process32Next(snapshot, &mut entry) == 1 {
+                    // Construct the process name from the bytes in the szExeFile array
+                    let current_process_name = util::c_char_array_to_string(entry.szExeFile.to_vec());
+
+                    // Compare the szExeFile element to the process name in lowercase
+                    if current_process_name.to_lowercase() == process_name.to_lowercase() {
+                        // If we get here, we have our process
+                        // Create a HANDLE
+                        let process_handle =
+                            OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID);
+
+                        if process_handle == NULL {
+                            let error_code = GetLastError();
+                            let message =
+                                util::error_code_to_message(error_code).unwrap_or("".parse().unwrap());
+
+                            bail!(
+                                "Failed to open process {}: {} (0x{:x})",
+                                current_process_name, message, error_code
+                            );
+                        }
+
+                        return Ok(WinAPIProcessHandle {
+                            process_handle,
+                            pid: entry.th32ProcessID,
+                            process_name,
+                        });
+                    }
+                }
+            }
+        }
+
+        Err(anyhow!("Process {} was not found", process_name))
     }
 }
 
@@ -71,10 +107,16 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         };
 
         if success == 0 {
-            get_last_error_result(buff).context("ReadProcessMemory failed")
-        } else {
-            Ok(buff)
+            let error_code = unsafe { GetLastError() };
+            let error_message =
+                util::error_code_to_message(error_code).unwrap_or("(unknown error)".to_string());
+            return Err(anyhow!(
+                "ReadProcessMemory at 0x{:X} with {} bytes failed: {} (0x{:X})",
+                address, size, error_message, error_code
+            ));
         }
+
+        Ok(buff)
     }
 
     fn write_bytes(&self, address: Address, bytes: &[u8]) -> Result<()> {
@@ -91,10 +133,19 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         };
 
         if success == 0 {
-            get_last_error_result(()).context("WriteProcessMemory failed")
-        } else {
-            Ok(())
+            let error_code = unsafe { GetLastError() };
+            let error_message =
+                util::error_code_to_message(error_code).unwrap_or("(unknown error)".to_string());
+            bail!(
+                "WriteProcessMemory at 0x{:X} with {} bytes failed: {} (0x{:X})",
+                address,
+                bytes.len(),
+                error_message,
+                error_code
+            );
         }
+
+        Ok(())
     }
 
     fn get_module(&self, module_name: &str) -> Option<Module> {
@@ -112,7 +163,7 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         unsafe {
             if Module32First(snapshot, &mut entry) != 1 {
                 let error = GetLastError();
-                let message = error_code_to_message(error);
+                let message = util::error_code_to_message(error);
                 println!(
                     "Error calling Module32First: {} (0x{:x})",
                     message.unwrap_or("".parse().unwrap()),
@@ -126,7 +177,7 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         };
 
         let module = module_list.into_iter().find(|module| {
-            c_char_array_to_string(module.szModule.to_vec()) == module_name.to_lowercase()
+            util::c_char_array_to_string(module.szModule.to_vec()) == module_name.to_lowercase()
         })?;
 
         Some(Module {

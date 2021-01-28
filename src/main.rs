@@ -18,12 +18,11 @@ pub mod memory;
 pub mod overlay;
 pub mod system;
 pub mod util;
-pub mod winutil;
 
 #[macro_use]
 pub mod macros;
 
-fn _main() {
+fn main() {
     let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
     // let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
     let module = handle.get_module("notepad.exe").unwrap();
@@ -33,11 +32,8 @@ fn _main() {
     File::create("dump.exe").unwrap().write_all(&dump).unwrap();
 }
 
-fn main() {
+fn _main() {
     let window = overlay::window::Window::hijack_nvidia().unwrap();
-    loop{}
-    return;
-    // let window = overlay::window::Window::create().unwrap();
     let mut imgui = Imgui::from_window(window).unwrap();
 
     let _opened = true;
@@ -47,7 +43,7 @@ fn main() {
                 ui.text(ui.io().framerate.to_string());
             })
     }, move |overlay| {
-        // overlay.draw_line(overlay.ui.io().mouse_pos.into(), (0, 0).into(), LineOptions::default().color(Color::rose5()).width(15.0));
+        overlay.draw_line(overlay.ui.io().mouse_pos.into(), (0, 0).into(), LineOptions::default().color(Color::rose5()).width(15.0));
         esp(overlay);
     })
 }

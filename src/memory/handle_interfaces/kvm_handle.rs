@@ -104,7 +104,7 @@ impl ProcessHandleInterface for KVMProcessHandle {
         Some(Module {
             base_address: module.info.baseAddress,
             size: module.info.sizeOfModule,
-            name: module_name.to_string(),
+            name: module_name.clone(),
         })
     }
 
