@@ -4,9 +4,6 @@ use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, Process32First, Process32Ne
 use anyhow::*;
 use log::*;
 
-use crate::memory::util;
-use winapi::um::errhandlingapi::GetLastError;
-
 #[derive(Clone, Debug)]
 pub struct Process {
     pub pid: u32,
@@ -30,7 +27,7 @@ pub fn get_process_list() -> Result<Vec<Process>> {
         if Process32First(snapshot, &mut entry) == 1 {
             while Process32Next(snapshot, &mut entry) == 1 {
                 // Construct the process name from the bytes in the szExeFile array
-                let name = util::c_char_array_to_string(entry.szExeFile.to_vec());
+                let name = super::c_char_array_to_string(entry.szExeFile.to_vec());
                 let pid = entry.th32ProcessID;
 
                 process_list.push(Process {
@@ -47,7 +44,7 @@ pub fn get_process_list() -> Result<Vec<Process>> {
 }
 
 /// Returns a PID by a process name
-pub(crate) fn get_pid_by_name(name: &str) -> Option<u32> {
+pub fn get_pid_by_name(name: &str) -> Option<u32> {
     get_process_list().unwrap()
         .iter()
         .find(|&proc| proc.name.to_lowercase() == name.to_lowercase())
