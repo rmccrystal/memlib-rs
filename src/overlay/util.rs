@@ -12,13 +12,10 @@ use winapi::shared::d3d9types::{
     D3DSWAPEFFECT_DISCARD,
 };
 use winapi::shared::ntdef::NTSTATUS;
-
 use winapi::shared::winerror::FAILED;
-
-
 use winapi::um::winuser::*;
+use crate::winutil::ToError;
 
-use crate::memory::util::error_code_to_message;
 use crate::overlay::window::Window;
 
 macro_rules! c_string {
@@ -39,24 +36,6 @@ macro_rules! c_string_w {
         };
         ptr
     }};
-}
-
-pub(crate) trait ToError {
-    fn to_err(self) -> Result<()>;
-}
-
-impl ToError for NTSTATUS {
-    fn to_err(self) -> Result<()> {
-        if FAILED(self) {
-            Err(anyhow!(
-                "{} ({:X})",
-                error_code_to_message(self as _).unwrap_or_default(),
-                self
-            ))
-        } else {
-            Ok(())
-        }
-    }
 }
 
 pub fn is_key_down(key: i32) -> bool {
