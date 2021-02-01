@@ -28,7 +28,7 @@ impl Window {
 
             let window = Self { hwnd };
 
-            window.push_style(WS_EX_LAYERED | WS_EX_TRANSPARENT)?;
+            window.push_style(GWL_EXSTYLE, WS_EX_TRANSPARENT)?;
             window.extend_into_client_area();
             window.set_alpha(0xFF);
 
@@ -154,10 +154,10 @@ impl Window {
     }
 
     /// Sets a window's style using SetWindowLongA
-    pub fn set_style(&self, flags: u32) -> Result<()> {
+    pub fn set_style(&self, n_index: i32, flags: u32) -> Result<()> {
         unsafe {
-            if GetWindowLongA(self.hwnd, GWL_STYLE) != flags as i32 {
-                let result = SetWindowLongA(self.hwnd, GWL_STYLE, flags as _);
+            if GetWindowLongA(self.hwnd, n_index) != flags as i32 {
+                let result = SetWindowLongA(self.hwnd, n_index, flags as _);
                 if result == 0 {
                     return Err(anyhow!("SetWindowLongA failed with code {:X}", GetLastError()));
                 }
@@ -167,14 +167,14 @@ impl Window {
         Ok(())
     }
 
-    pub fn push_style(&self, flags: u32) -> Result<()> {
+    pub fn push_style(&self, n_index: i32, flags: u32) -> Result<()> {
         unsafe {
-            let style = GetWindowLongA(self.hwnd, GWL_EXSTYLE);
+            let style = GetWindowLongA(self.hwnd, n_index);
             println!("style = {:X}", style);
             println!("flags = {:X}", style);
             println!("a = {:X}", style);
             dbg!(style as u32 | flags);
-            self.set_style(style as u32 | flags)
+            self.set_style(n_index, style as u32 | flags)
         }
     }
 

@@ -177,7 +177,8 @@ impl Imgui {
 
             let mut affinity = 0;
             GetWindowDisplayAffinity(self.window.hwnd, &mut affinity);
-            // dbg!(affinity);
+            dbg!(affinity);
+            println!("hwnd: {:p}", self.window.hwnd);
         }
     }
 

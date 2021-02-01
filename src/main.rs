@@ -35,8 +35,8 @@ fn _main() {
 
 fn main() {
     let window = overlay::window::Window::hijack_nvidia().unwrap();
-    loop{}
-    return;
+    // loop{}
+    // return;
     // let window = overlay::window::Window::create().unwrap();
     let mut imgui = Imgui::from_window(window).unwrap();
 
