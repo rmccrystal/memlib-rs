@@ -53,9 +53,9 @@ fn _main() {
     let pid = unsafe {GetCurrentProcessId()};
 
     let num = 1;
-    let status = inject_func(pid, func, &num).unwrap();
+    // let status = inject_func(pid, func, &num).unwrap();
 
-    println!("status: {:X}", status);
+    // println!("status: {:X}", status);
 }
 
 fn main() {

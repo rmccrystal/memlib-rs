@@ -183,6 +183,9 @@ impl Window {
     }
 
     pub fn set_affinity(&self, affinity: WindowAffinity) -> Result<()> {
+        // if self.get_affinity()? == affinity {
+        //     return Ok(())
+        // }
         unsafe {
             // If the HWND is owned by this process, we can just call swda
             if GetCurrentProcessId() == self.get_owner_pid()? {
@@ -232,11 +235,13 @@ impl Window {
             pub affinity: u32,
             pub hwnd: usize,
             pub swda: extern "stdcall" fn(usize, u32),
+            pub handled: bool,
         }
-        extern "C" fn injected_func(data: *mut Data) -> u32 {
+        extern "C" fn injected_func(data: &mut Data) -> u32 {
             unsafe {
-                let swda = (*data).swda;
-                swda((*data).hwnd as _, (*data).affinity);
+                let swda = data.swda;
+                swda(data.hwnd as _, data.affinity);
+                data.handled = true;
             }
             1
         }
@@ -244,10 +249,12 @@ impl Window {
             hwnd: self.hwnd as _,
             affinity: affinity as u32,
             swda: unsafe { std::mem::transmute(swda) },
+            handled: false
         };
 
-        let status = inject_func(pid, injected_func, &data).unwrap();
+        let (status, data) = inject_func(pid, injected_func, &data).unwrap();
         assert_eq!(status, 1);
+        assert_eq!(data.handled, true);
 
         Ok(())
     }

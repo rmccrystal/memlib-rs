@@ -2,7 +2,7 @@ use anyhow::*;
 use log::*;
 use std::io;
 use winapi::_core::ptr::null_mut;
-use winapi::um::memoryapi::{VirtualAllocEx, WriteProcessMemory, VirtualProtect};
+use winapi::um::memoryapi::{VirtualAllocEx, WriteProcessMemory, VirtualProtect, ReadProcessMemory};
 use winapi::um::processthreadsapi::{CreateRemoteThread, GetExitCodeThread, OpenProcess, GetCurrentProcess};
 use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::INFINITE;
@@ -33,8 +33,11 @@ unsafe fn remote_allocate_sized(handle: HANDLE, buf_addr: *const (), size: usize
     Ok(buf as _)
 }
 
-// TODO: Maybe make data changeable by reading the buffer again
-pub fn inject_func<T>(pid: u32, func: extern "C" fn(*mut T) -> u32, data: &T) -> Result<u32> {
+/// Runs a function inside another process. The function take
+/// take one argument, a buffer of type T which can be modified.
+/// The function will return the return value of the function
+/// and the (potentially) modified buffer
+pub fn inject_func<T>(pid: u32, func: extern "C" fn(&mut T) -> u32, data: &T) -> Result<(u32, T)> {
     unsafe {
         let process = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
         if process.is_null() {
@@ -74,7 +77,16 @@ pub fn inject_func<T>(pid: u32, func: extern "C" fn(*mut T) -> u32, data: &T) ->
 
         trace!("Thread exited with code 0x{:X}", exit_code);
 
-        Ok(exit_code)
+        let mut new_data: T = std::mem::MaybeUninit::uninit().assume_init();
+        ReadProcessMemory(
+            process,
+            remote_data as _,
+            &mut new_data as *mut _ as _,
+            std::mem::size_of::<T>(),
+            null_mut()
+        );
+
+        Ok((exit_code, new_data))
     }
 }
 
