@@ -1,3 +1,4 @@
+#![feature(asm)]
 
 use crate::overlay::imgui::Imgui;
 use crate::overlay::{Color, Draw, Font, LineOptions, TextOptions, TextStyle};
@@ -9,6 +10,10 @@ use std::fs::File;
 use std::io::Write;
 use crate::memory::handle_interfaces::winapi_handle::WinAPIProcessHandle;
 use crate::memory::handle_interfaces::driver_handle::DriverProcessHandle;
+use crate::logger::MinimalLogger;
+use log::LevelFilter;
+use crate::winutil::{get_pid_by_name, inject_func};
+use winapi::um::processthreadsapi::GetCurrentProcessId;
 
 
 pub mod hacks;
@@ -23,7 +28,7 @@ pub mod winutil;
 #[macro_use]
 pub mod macros;
 
-fn _main() {
+fn ___main() {
     let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
     // let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
     let module = handle.get_module("notepad.exe").unwrap();
@@ -33,7 +38,28 @@ fn _main() {
     File::create("dump.exe").unwrap().write_all(&dump).unwrap();
 }
 
+struct Data {
+
+}
+
+extern "C" fn func(num: *mut u32) -> u32 {
+    unsafe { *num }
+}
+
+fn _main() {
+    MinimalLogger::init(LevelFilter::Trace);
+
+    // let pid = get_pid_by_name("notepad.exe").unwrap();
+    let pid = unsafe {GetCurrentProcessId()};
+
+    let num = 1;
+    let status = inject_func(pid, func, &num).unwrap();
+
+    println!("status: {:X}", status);
+}
+
 fn main() {
+    MinimalLogger::init(LevelFilter::Trace);
     let window = overlay::window::Window::hijack_nvidia().unwrap();
     // loop{}
     // return;

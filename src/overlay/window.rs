@@ -1,15 +1,21 @@
-use anyhow::Result;
 use core::result::Result::Ok;
+use std::io;
+
+use anyhow::*;
+use anyhow::Result;
+use iced_x86::{Code, Instruction, Register};
+use log::*;
+use winapi::_core::ptr::null_mut;
 use winapi::shared::windef::{HWND, RECT};
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
-use winapi::um::uxtheme::MARGINS;
-use winapi::um::winuser::*;
-use anyhow::*;
 use winapi::um::errhandlingapi::GetLastError;
-use crate::winutil::{ToError, inject_shellcode};
-use winapi::_core::ptr::null_mut;
 use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
 use winapi::um::processthreadsapi::GetCurrentProcessId;
+use winapi::um::uxtheme::MARGINS;
+use winapi::um::winuser::*;
+
+use crate::winutil::{inject_instructions, inject_shellcode, ToError, inject_func};
+use std::ffi::c_void;
 
 pub struct Window {
     pub(crate) hwnd: HWND,
@@ -25,6 +31,8 @@ impl Window {
                 class_name,
                 window_name
                 ))?;
+
+            trace!("Found hWnd with class_name: {} and window_name: {}: {:p}", class_name, window_name, hwnd);
 
             let window = Self { hwnd };
 
@@ -159,7 +167,7 @@ impl Window {
             if GetWindowLongA(self.hwnd, n_index) != flags as i32 {
                 let result = SetWindowLongA(self.hwnd, n_index, flags as _);
                 if result == 0 {
-                    return Err(anyhow!("SetWindowLongA failed with code {:X}", GetLastError()));
+                    return Err(anyhow!("SetWindowLongA failed: {}", io::Error::last_os_error()));
                 }
             }
         }
@@ -183,14 +191,31 @@ impl Window {
             // If the HWND is owned by this process, we can just call swda
             if GetCurrentProcessId() == self.get_owner_pid()? {
                 let result = SetWindowDisplayAffinity(self.hwnd, affinity as _);
-                if result != 0 {
-                    Err(anyhow!("SetWindowDisplayAffinity failed with code {:X}", GetLastError()))
+                if result == 0 {
+                    Err(anyhow!("SetWindowDisplayAffinity failed: {}", io::Error::last_os_error()))
                 } else {
                     Ok(())
                 }
             } else { // otherwise, we have to set it remotely
-                self.set_remote_affinity(affinity)
+                self.set_remote_affinity(affinity)?;
+                let actual_affinity = self.get_affinity()?;
+                if affinity != actual_affinity {
+                    bail!("Setting remote affinity did not work. affinity: {:?}, actual_affinity: {:?}", affinity, actual_affinity);
+                }
+                Ok(())
             }
+        }
+    }
+
+    pub fn get_affinity(&self) -> Result<WindowAffinity> {
+        unsafe {
+            let mut affinity = WindowAffinity::WdaNone;
+            let success = GetWindowDisplayAffinity(self.hwnd, std::mem::transmute(&mut affinity));
+            if success == 0 {
+                bail!("GetWindowDisplayAffinity failed: {}", std::io::Error::last_os_error())
+            }
+
+            Ok(affinity)
         }
     }
 
@@ -200,44 +225,35 @@ impl Window {
 
         dbg!(pid);
 
+        let user32 = unsafe { LoadLibraryA(c_string!("user32.dll")) };
         let swda = unsafe {
             GetProcAddress(
-                LoadLibraryA(c_string!("user32.dll")),
-                c_string!("SetWindowDisplayAffinity")
+                user32,
+                c_string!("SetWindowDisplayAffinity"),
             )
         };
-        let swda_bytes = (swda as u64).to_le_bytes();
 
-        let dw_affinity = affinity as u32;
-        let affinity_bytes = dw_affinity.to_be_bytes();
+        #[repr(C)]
+        struct Data {
+            pub affinity: u32,
+            pub hwnd: usize,
+            pub swda: extern "stdcall" fn(usize, u32),
+        }
+        extern "C" fn injected_func(data: *mut Data) -> u32 {
+            unsafe {
+                let swda = (*data).swda;
+                swda((*data).hwnd as _, (*data).affinity);
+            }
+            1
+        }
+        let data = Data {
+            hwnd: self.hwnd as _,
+            affinity: affinity as u32,
+            swda: unsafe { std::mem::transmute(swda) },
+        };
 
-        let hwnd_bytes = ((self.hwnd as u32) + 1000).to_be_bytes();
-
-        println!("affinity: {:X}, hwnd: {:X}, swda: {:p}", affinity as u32, self.hwnd as u32, swda);
-
-        let mut shellcode = Vec::new();
-
-        // mov edx, dwAffinity
-        shellcode.push(0xBA);
-        shellcode.extend_from_slice(&affinity_bytes);
-
-        // mov ecx, hWnd
-        shellcode.push(0xB9);
-        shellcode.extend_from_slice(&hwnd_bytes);
-
-        // mov eax, SetWindowDisplayAffinity
-        shellcode.extend_from_slice(&[0x48, 0xB8]);
-        shellcode.extend_from_slice(&swda_bytes);
-
-        // call rax
-        shellcode.extend_from_slice(&[0xFF, 0xD0]);
-
-        // retn
-        shellcode.push(0xC3);
-
-        let result = unsafe { inject_shellcode(&shellcode, pid)? };
-        println!("{:X?}", shellcode);
-        dbg!(result);
+        let status = inject_func(pid, injected_func, &data).unwrap();
+        assert_eq!(status, 1);
 
         Ok(())
     }
@@ -255,7 +271,7 @@ impl Window {
 
 // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity
 #[repr(u32)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum WindowAffinity {
     /// Imposes no restrictions on where the window can be displayed.
     WdaNone = 0x0,
