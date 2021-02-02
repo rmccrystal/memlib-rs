@@ -11,8 +11,6 @@ use winapi::shared::d3d9types::{
     D3DDEVTYPE_HAL, D3DFMT_A8R8G8B8, D3DFMT_D16, D3DMULTISAMPLE_NONE, D3DPRESENT_PARAMETERS,
     D3DSWAPEFFECT_DISCARD,
 };
-use winapi::shared::ntdef::NTSTATUS;
-use winapi::shared::winerror::FAILED;
 use winapi::um::winuser::*;
 use crate::winutil::ToError;
 

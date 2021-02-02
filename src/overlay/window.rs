@@ -3,19 +3,17 @@ use std::io;
 
 use anyhow::*;
 use anyhow::Result;
-use iced_x86::{Code, Instruction, Register};
 use log::*;
 use winapi::_core::ptr::null_mut;
 use winapi::shared::windef::{HWND, RECT};
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
-use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
+use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA, FreeLibrary};
 use winapi::um::processthreadsapi::GetCurrentProcessId;
 use winapi::um::uxtheme::MARGINS;
 use winapi::um::winuser::*;
 
-use crate::winutil::{inject_instructions, inject_shellcode, ToError, inject_func};
-use std::ffi::c_void;
+use crate::winutil::{inject_func};
+
 
 pub struct Window {
     pub(crate) hwnd: HWND,
@@ -43,7 +41,7 @@ impl Window {
             // Set window as topmost
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
-            window.set_affinity(WindowAffinity::WdaExcludefromcapture)?;
+            window.set_affinity(WindowAffinity::WdaExcludeFromCapture)?;
 
             window.show();
 
@@ -150,7 +148,7 @@ impl Window {
     /// Handles the messages of a window. If a message is handled, the funciton returns true
     pub fn handle_messages(&self) -> bool {
         unsafe {
-            let mut msg = unsafe { std::mem::zeroed() };
+            let mut msg = std::mem::zeroed();
             if PeekMessageA(&mut msg, self.hwnd, 0, 0, PM_REMOVE) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageA(&msg);
@@ -183,9 +181,9 @@ impl Window {
     }
 
     pub fn set_affinity(&self, affinity: WindowAffinity) -> Result<()> {
-        // if self.get_affinity()? == affinity {
-        //     return Ok(())
-        // }
+        if self.get_affinity()? == affinity {
+            return Ok(())
+        }
         unsafe {
             // If the HWND is owned by this process, we can just call swda
             if GetCurrentProcessId() == self.get_owner_pid()? {
@@ -220,6 +218,8 @@ impl Window {
 
     /// Sets the window affinity when the HWND isn't owned by this process (nvidia for example)
     fn set_remote_affinity(&self, affinity: WindowAffinity) -> Result<()> {
+        debug!("Remotely setting affinity to {:?}", affinity);
+
         let pid = self.get_owner_pid()?;
 
         let user32 = unsafe { LoadLibraryA(c_string!("user32.dll")) };
@@ -238,23 +238,22 @@ impl Window {
             pub handled: bool,
         }
         extern "C" fn injected_func(data: &mut Data) -> u32 {
-            unsafe {
-                let swda = data.swda;
-                swda(data.hwnd as _, data.affinity);
-                data.handled = true;
-            }
+            (data.swda)(data.hwnd as _, data.affinity);
+            data.handled = true;
             1
         }
         let data = Data {
             hwnd: self.hwnd as _,
             affinity: affinity as u32,
             swda: unsafe { std::mem::transmute(swda) },
-            handled: false
+            handled: false,
         };
 
         let (status, data) = inject_func(pid, injected_func, &data).unwrap();
         assert_eq!(status, 1);
         assert_eq!(data.handled, true);
+
+        let _ = unsafe { FreeLibrary(user32) };
 
         Ok(())
     }
@@ -283,5 +282,5 @@ pub enum WindowAffinity {
     /// The window is displayed only on a monitor. Everywhere else, the window does not appear at all.
     /// One use for this affinity is for windows that show video recording controls, so that the controls are not included in the capture.
     /// Introduced in Windows 10 Version 2004. See remarks about compatibility regarding previous versions of Windows.
-    WdaExcludefromcapture = 0x11,
+    WdaExcludeFromCapture = 0x11,
 }

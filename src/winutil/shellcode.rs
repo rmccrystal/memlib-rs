@@ -2,8 +2,8 @@ use anyhow::*;
 use log::*;
 use std::io;
 use winapi::_core::ptr::null_mut;
-use winapi::um::memoryapi::{VirtualAllocEx, WriteProcessMemory, VirtualProtect, ReadProcessMemory};
-use winapi::um::processthreadsapi::{CreateRemoteThread, GetExitCodeThread, OpenProcess, GetCurrentProcess};
+use winapi::um::memoryapi::{VirtualAllocEx, WriteProcessMemory, ReadProcessMemory};
+use winapi::um::processthreadsapi::{CreateRemoteThread, GetExitCodeThread, OpenProcess};
 use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::*;
@@ -102,7 +102,7 @@ pub fn inject_instructions(instructions: &[Instruction], bitness: u32, pid: u32)
 /// Injects and runs shellcode into a process
 /// Returns the return value of the shellcode or an error
 pub unsafe fn inject_shellcode(code: &[u8], pid: u32) -> Result<u32> {
-    let process = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
+    let process = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
     if process.is_null() {
         bail!("Could not open pid {}: {}", pid, std::io::Error::last_os_error())
     }

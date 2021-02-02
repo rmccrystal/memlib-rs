@@ -11,7 +11,6 @@ use winapi::_core::ptr::null;
 
 use winapi::shared::d3d9types::{D3DCLEAR_TARGET, D3DCLEAR_ZBUFFER, D3DRS_ALPHABLENDENABLE, D3DRS_SCISSORTESTENABLE, D3DRS_ZENABLE, D3DCOLOR_RGBA};
 
-use winapi::shared::windef::{RECT, POINT};
 use winapi::um::profileapi::{QueryPerformanceCounter, QueryPerformanceFrequency};
 use winapi::um::winuser::*;
 
@@ -26,7 +25,7 @@ use winapi::shared::minwindef::TRUE;
 use super::types;
 use super::util::is_key_down;
 use super::window;
-use crate::overlay::window::WindowAffinity;
+use winapi::shared::windef::POINT;
 
 
 mod fonts;

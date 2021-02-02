@@ -6,15 +6,12 @@
 use std::mem;
 use anyhow::*;
 
-use winapi::shared::ntdef::{HANDLE, MAKELANGID, NULL, SUBLANG_DEFAULT};
+use winapi::shared::ntdef::*;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::handleapi::CloseHandle;
 use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
 use winapi::um::processthreadsapi::OpenProcess;
-use winapi::um::tlhelp32::{
-    CreateToolhelp32Snapshot, Module32First, Module32Next, MODULEENTRY32, Process32First,
-    Process32Next, PROCESSENTRY32, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, TH32CS_SNAPPROCESS,
-};
+use winapi::um::tlhelp32::*;
 
 use winapi::um::winnt::{PROCESS_ALL_ACCESS};
 

@@ -1,9 +1,7 @@
 use anyhow::*;
-use winapi::_core::mem;
 use winapi::shared::ntdef::{MAKELANGID, NTSTATUS, NULL, SUBLANG_DEFAULT};
 use winapi::shared::winerror::FAILED;
 use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS};
 use winapi::um::winbase::{FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS, FormatMessageA};
 use winapi::um::winnt::LANG_NEUTRAL;
 
