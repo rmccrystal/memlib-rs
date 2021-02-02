@@ -34,7 +34,7 @@ impl Window {
 
             let window = Self { hwnd };
 
-            window.push_style(GWL_EXSTYLE, WS_EX_TRANSPARENT)?;
+            window.set_style(GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOPMOST)?;
             window.extend_into_client_area();
             window.set_alpha(0xFF);
 
@@ -45,7 +45,9 @@ impl Window {
 
             window.show();
 
-            Ok(Window { hwnd })
+            window.set_clickthrough(true);
+
+            Ok(window)
         }
     }
 
@@ -159,10 +161,26 @@ impl Window {
         }
     }
 
+    pub fn set_clickthrough(&self, clickthrough: bool) {
+        self.set_style_flag(GWL_EXSTYLE, WS_EX_TRANSPARENT, clickthrough).expect("Could not set clickthrough");
+    }
+
+    /// Sets a single style flag
+    pub fn set_style_flag(&self, n_index: i32, flag: u32, enabled: bool) -> Result<()> {
+        let style = self.get_style(n_index)?;
+        let style = match enabled {
+            true => style | flag,
+            false => style & !flag,
+        };
+        self.set_style(n_index, style)?;
+
+        Ok(())
+    }
+
     /// Sets a window's style using SetWindowLongA
     pub fn set_style(&self, n_index: i32, flags: u32) -> Result<()> {
         unsafe {
-            if GetWindowLongA(self.hwnd, n_index) != flags as i32 {
+            if self.get_style(n_index)? != flags {
                 let result = SetWindowLongA(self.hwnd, n_index, flags as _);
                 if result == 0 {
                     return Err(anyhow!("SetWindowLongA failed: {}", io::Error::last_os_error()));
@@ -171,6 +189,11 @@ impl Window {
         }
 
         Ok(())
+    }
+
+    pub fn get_style(&self, n_index: i32) -> Result<u32> {
+        let style = unsafe {GetWindowLongA(self.hwnd, n_index) };
+        Ok(style as _)
     }
 
     pub fn push_style(&self, n_index: i32, flags: u32) -> Result<()> {

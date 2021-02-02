@@ -160,7 +160,7 @@ impl Imgui {
 
     fn update_window(&mut self) {
         unsafe {
-            self.window.set_above_foreground_window();
+            // self.window.set_above_foreground_window();
             self.window.handle_messages();
 
             let io = self.context.io_mut();
