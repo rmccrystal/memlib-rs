@@ -34,7 +34,7 @@ impl Window {
 
             let window = Self { hwnd };
 
-            window.set_style(GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOPMOST)?;
+            window.set_style(GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW)?;
             window.extend_into_client_area();
             window.set_alpha(0xFF);
 
