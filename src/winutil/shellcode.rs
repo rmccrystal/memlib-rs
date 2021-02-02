@@ -21,10 +21,6 @@ unsafe fn remote_allocate_sized(handle: HANDLE, buf_addr: *const (), size: usize
     }
     trace!("Allocated buffer at {:p}", buf);
 
-    // let mut old_protect = 0;
-    // VirtualProtect(buf, size, PAGE_EXECUTE_READWRITE, &mut old_protect);
-    // dbg!(old_protect);
-
     let mut bytes_written = 0;
     let status = WriteProcessMemory(handle, buf, buf_addr as _, size, &mut bytes_written);
     if status == 0 {
@@ -45,7 +41,6 @@ pub fn inject_func<T>(pid: u32, func: extern "C" fn(*mut T) -> u32, data: &T) ->
             bail!("Could not open pid {}: {}", pid, std::io::Error::last_os_error())
         }
         trace!("Opened process: {:p}", process);
-        dbg!(func);
 
         // Allocate function
         let remote_func = remote_allocate_sized(
@@ -55,10 +50,8 @@ pub fn inject_func<T>(pid: u32, func: extern "C" fn(*mut T) -> u32, data: &T) ->
             MEM_COMMIT | MEM_RESERVE,
             PAGE_EXECUTE_READWRITE
         )?;
-        dbg!(remote_func);
         // Allocate data
         let remote_data = remote_allocate(process, data, MEM_COMMIT, PAGE_READWRITE)?;
-        dbg!(remote_data);
 
         let mut thread_id = 0;
         let remote_thread = CreateRemoteThread(

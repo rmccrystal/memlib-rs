@@ -161,7 +161,6 @@ impl Imgui {
 
     fn update_window(&mut self) {
         unsafe {
-            // self.window.set_style(WS_POPUP | WS_CLIPSIBLINGS | WS_DISABLED | WS_VISIBLE | WS_EX_LAYERED | WS_EX_TRANSPARENT).unwrap();
             self.window.set_above_foreground_window();
             self.window.handle_messages();
 
@@ -174,11 +173,6 @@ impl Imgui {
             QueryPerformanceCounter(&mut current_time as *mut _ as _);
             io.delta_time = (current_time - self.time) as f32 / self.ticks_per_second as f32;
             self.time = current_time;
-
-            let mut affinity = 0;
-            GetWindowDisplayAffinity(self.window.hwnd, &mut affinity);
-            dbg!(affinity);
-            println!("hwnd: {:p}", self.window.hwnd);
         }
     }
 

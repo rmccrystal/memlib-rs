@@ -178,10 +178,6 @@ impl Window {
     pub fn push_style(&self, n_index: i32, flags: u32) -> Result<()> {
         unsafe {
             let style = GetWindowLongA(self.hwnd, n_index);
-            println!("style = {:X}", style);
-            println!("flags = {:X}", style);
-            println!("a = {:X}", style);
-            dbg!(style as u32 | flags);
             self.set_style(n_index, style as u32 | flags)
         }
     }
@@ -222,8 +218,6 @@ impl Window {
     /// Sets the window affinity when the HWND isn't owned by this process (nvidia for example)
     fn set_remote_affinity(&self, affinity: WindowAffinity) -> Result<()> {
         let pid = self.get_owner_pid()?;
-
-        dbg!(pid);
 
         let user32 = unsafe { LoadLibraryA(c_string!("user32.dll")) };
         let swda = unsafe {
