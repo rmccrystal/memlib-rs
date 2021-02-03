@@ -1,6 +1,6 @@
 #![feature(asm)]
 
-use crate::overlay::imgui::Imgui;
+use crate::overlay::imgui::{Imgui, ImguiConfig};
 use crate::overlay::{Color, Draw, Font, LineOptions, TextOptions, TextStyle};
 
 use imgui::*;
@@ -12,8 +12,9 @@ use crate::memory::handle_interfaces::winapi_handle::WinAPIProcessHandle;
 use crate::memory::handle_interfaces::driver_handle::DriverProcessHandle;
 use crate::logger::MinimalLogger;
 use log::LevelFilter;
-use crate::winutil::{get_pid_by_name, inject_func};
+use crate::winutil::{get_pid_by_name, inject_func, InputEventListener, Event};
 use winapi::um::processthreadsapi::GetCurrentProcessId;
+use win_key_codes::VK_INSERT;
 
 
 pub mod hacks;
@@ -58,23 +59,27 @@ fn _main() {
     // println!("status: {:X}", status);
 }
 
+fn n_main() {
+    use win_key_codes::*;
+    let lis = InputEventListener::new();
+}
+
 fn main() {
-    MinimalLogger::init(LevelFilter::Trace);
+    MinimalLogger::init(LevelFilter::Trace).unwrap();
+
     let window = overlay::window::Window::hijack_nvidia().unwrap();
-    // loop{}
-    // return;
-    // let window = overlay::window::Window::create().unwrap();
-    let mut imgui = Imgui::from_window(window).unwrap();
+    let mut imgui = Imgui::from_window(window, ImguiConfig{toggle_menu_key: Some(VK_INSERT)}).unwrap();
 
     let _opened = true;
     imgui.main_loop(move |ui, _ctx| {
         Window::new(im_str!("test"))
             .build(&ui, || {
                 ui.text(ui.io().framerate.to_string());
+                ui.button(im_str!("button"), [100.0, 200.0]);
             })
     }, move |overlay| {
         // overlay.draw_line(overlay.ui.io().mouse_pos.into(), (0, 0).into(), LineOptions::default().color(Color::rose5()).width(15.0));
-        esp(overlay);
+        // esp(overlay);
     })
 }
 

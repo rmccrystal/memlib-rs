@@ -19,11 +19,11 @@ use crate::overlay::imgui::fonts::create_fonts;
 use crate::overlay::util::{create_d3d_device, D3DDevice9};
 use crate::overlay::{BoxOptions, CircleOptions, Draw, LineOptions, TextOptions, TextStyle};
 
-use crate::winutil::ToError;
+use crate::winutil::{ToError, InputEventListener, Event};
 use winapi::shared::minwindef::TRUE;
 
 use super::types;
-use super::util::is_key_down;
+use crate::winutil::is_key_down;
 use super::window;
 use winapi::shared::windef::POINT;
 
@@ -38,10 +38,18 @@ pub struct Imgui {
     ticks_per_second: i64,
     time: i64,
     pub font_ids: HashMap<super::types::Font, FontId>,
+    pub config: ImguiConfig,
+    input_listener: InputEventListener,
+    ui_enabled: bool,
+}
+
+#[derive(Default)]
+pub struct ImguiConfig {
+    pub toggle_menu_key: Option<i32>,
 }
 
 impl Imgui {
-    pub fn from_window(window: window::Window) -> Result<Imgui> {
+    pub fn from_window(window: window::Window, config: ImguiConfig) -> Result<Imgui> {
         let mut device = unsafe { create_d3d_device(&window)? };
 
         let mut context = imgui::Context::create();
@@ -61,6 +69,8 @@ impl Imgui {
             QueryPerformanceCounter(&mut time as *mut _ as _);
         }
 
+        let input_listener = InputEventListener::new();
+
         Ok(Self {
             renderer,
             context,
@@ -69,6 +79,9 @@ impl Imgui {
             ticks_per_second,
             time,
             font_ids,
+            config,
+            input_listener,
+            ui_enabled: true,
         })
     }
 
@@ -197,18 +210,35 @@ impl Imgui {
         }
     }
 
+    pub fn update_keybinds(&mut self) {
+        if let None = self.config.toggle_menu_key {
+            return;
+        }
+        for event in &self.input_listener {
+            if let Event::KeyDown(key) = event {
+                if key == self.config.toggle_menu_key.unwrap() {
+                    self.ui_enabled = !self.ui_enabled
+                }
+            }
+        }
+    }
+
     pub fn main_loop(&mut self, mut run_ui: impl FnMut(&mut Ui, &RenderContext), mut run_overlay: impl FnMut(&mut OverlayWindow)) {
         loop {
             self.update_window();
             self.update_mouse_pos();
             self.update_keyboard();
+            self.update_keybinds();
 
             let draw_data = {
                 let context = RenderContext {
                     font_ids: &self.font_ids
                 };
                 let mut ui = self.context.frame();
-                run_ui(&mut ui, &context);
+
+                if self.ui_enabled {
+                    run_ui(&mut ui, &context);
+                }
 
                 let mut overlay_window = OverlayWindow::begin(&mut ui, &self.font_ids);
                 run_overlay(&mut overlay_window);

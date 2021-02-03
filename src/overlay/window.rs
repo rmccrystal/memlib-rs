@@ -154,6 +154,7 @@ impl Window {
             if PeekMessageA(&mut msg, self.hwnd, 0, 0, PM_REMOVE) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageA(&msg);
+                dbg!(msg.lParam, msg.pt.x, msg.pt.y, msg.wParam, msg.message);
                 true
             } else {
                 false

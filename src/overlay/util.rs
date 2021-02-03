@@ -12,9 +12,9 @@ use winapi::shared::d3d9types::{
     D3DSWAPEFFECT_DISCARD,
 };
 use winapi::um::winuser::*;
-use crate::winutil::ToError;
 
 use crate::overlay::window::Window;
+use crate::winutil::ToError;
 
 macro_rules! c_string {
     ($str:expr) => {
@@ -34,10 +34,6 @@ macro_rules! c_string_w {
         };
         ptr
     }};
-}
-
-pub fn is_key_down(key: i32) -> bool {
-    unsafe { (GetAsyncKeyState(key)) != 0 }
 }
 
 pub struct D3DDevice9(pub(crate) LPDIRECT3DDEVICE9);
