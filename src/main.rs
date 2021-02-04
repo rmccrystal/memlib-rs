@@ -29,14 +29,15 @@ pub mod winutil;
 #[macro_use]
 pub mod macros;
 
-fn ___main() {
+fn main() {
     let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
     // let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
     let module = handle.get_module("notepad.exe").unwrap();
     println!("base: {:X}, size: {:X}", module.base_address, module.size);
 
     let dump = handle.dump_memory(module.get_memory_range());
-    File::create("dump.exe").unwrap().write_all(&dump).unwrap();
+    dbg!(dump[0]);
+    // File::create("dump.exe").unwrap().write_all(&dump).unwrap();
 }
 
 struct Data {
@@ -64,7 +65,7 @@ fn n_main() {
     let lis = InputEventListener::new();
 }
 
-fn main() {
+fn samain() {
     MinimalLogger::init(LevelFilter::Trace).unwrap();
 
     let window = overlay::window::Window::hijack_nvidia().unwrap();

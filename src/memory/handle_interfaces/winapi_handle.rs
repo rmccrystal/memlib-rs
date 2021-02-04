@@ -17,6 +17,7 @@ use winapi::um::winnt::{PROCESS_ALL_ACCESS};
 
 use super::super::*;
 use crate::winutil::{get_pid_by_name, get_last_error_result, error_code_to_message, c_char_array_to_string};
+use winapi::um::wow64apiset::IsWow64Process;
 
 pub struct WinAPIProcessHandle {
     process_handle: HANDLE,
@@ -134,9 +135,16 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
     }
 
     fn get_process_info(&self) -> ProcessInfo {
+        let is_64_bit = unsafe {
+            let mut ret = 0;
+            IsWow64Process(self.process_handle, &mut ret);
+            ret == 1
+        };
+
         ProcessInfo {
             process_name: self.process_name.clone(),
             peb_base_address: 0, // Not implemented
+            bitness: if is_64_bit { 64 } else { 32 }
         }
     }
 }

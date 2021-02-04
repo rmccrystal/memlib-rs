@@ -42,10 +42,21 @@ pub fn read_memory<T>(address: Address) -> T {
     get_global_handle().read_memory(address)
 }
 
+/// Reads memory of type T from a process. If it is successful,
+/// it will return the bytes read as type T. Otherwise, the error will be returned
+pub fn try_read_memory<T>(address: Address) -> Result<T> {
+    get_global_handle().try_read_memory(address)
+}
+
 /// Writes memory of type T to a process. If it is successful,
 /// the function will return, otherwise the function will panic
 pub fn write_memory<T>(address: Address, value: T) {
     get_global_handle().write_memory(address, value)
+}
+
+/// Writes memory of type T to a process. Returns Ok(()) if successful
+pub fn try_write_memory<T>(address: Address, value: T) -> Result<()> {
+    get_global_handle().try_write_memory(address, value)
 }
 
 /// Reads an array of length `length` and type T from the process.

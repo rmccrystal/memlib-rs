@@ -48,6 +48,7 @@ impl ProcessHandleInterface for DriverProcessHandle {
 
     fn get_process_info(&self) -> ProcessInfo {
         let peb_base_address = self.handle.get_peb_address(self.pid as u64).unwrap();
-        ProcessInfo { process_name: self.process_name.clone(), peb_base_address }
+        let bitness = self.handle.get_process_bitness(self.pid as u64).unwrap();
+        ProcessInfo { process_name: self.process_name.clone(), peb_base_address , bitness}
     }
 }

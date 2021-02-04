@@ -55,6 +55,8 @@ pub struct ProcessInfo {
     pub peb_base_address: u64,
     /// The name of the process
     pub process_name: String,
+    /// 32 bit or 64 bit (number is either 32 or 64)
+    pub bitness: u16
 }
 
 /// A handle to a process allowing Reading and writing memory
@@ -105,27 +107,31 @@ impl Handle {
     }
 
     /// Reads memory of type T from a process. If it is successful,
-    /// it will return the bytes read as type T. Otherwise, it will panic.
-    pub fn read_memory<T>(&self, address: Address) -> T {
+    /// it will return the bytes read as type T. Otherwise, the error will be returned
+    pub fn try_read_memory<T>(&self, address: Address) -> Result<T> {
         // Get size of the type
         let size = mem::size_of::<T>();
 
         let bytes = self
             .interface
-            .read_bytes(address, size)
-            .expect("Error reading bytes from process");
+            .read_bytes(address, size)?;
         // Convert the raw bytes into the type we need to return
         let value = unsafe {
             // We do this by casting the pointer to the bytes as a pointer to T
             ptr::read(bytes.as_ptr() as *const _)
         };
 
-        value
+        Ok(value)
     }
 
-    /// Writes memory of type T to a process. If it is successful,
-    /// the function will return, otherwise the function will panic
-    pub fn write_memory<T>(&self, address: Address, value: T) {
+    /// Reads memory of type T from a process. If it is successful,
+    /// it will return the bytes read as type T. Otherwise, it will panic.
+    pub fn read_memory<T>(&self, address: Address) -> T {
+        self.try_read_memory(address).unwrap()
+    }
+
+    /// Writes memory of type T to a process. Returns Ok(()) if successful
+    pub fn try_write_memory<T>(&self, address: Address, value: T) -> Result<()> {
         let size = mem::size_of::<T>();
 
         // Create a byte buffer from the type
@@ -133,7 +139,12 @@ impl Handle {
         let buff = unsafe { slice::from_raw_parts((&value as *const T) as *const u8, size) };
 
         self.write_bytes(address, buff)
-            .expect("Failed to write memory to process")
+    }
+
+    /// Writes memory of type T to a process. If it is successful,
+    /// the function will return, otherwise the function will panic
+    pub fn write_memory<T>(&self, address: Address, value: T) {
+        self.try_write_memory(address, value).unwrap()
     }
 
     /// Reads an array of length `length` and type T from the process.
@@ -162,7 +173,7 @@ impl Handle {
         let mut buffer: Vec<u8> = Vec::new();
 
         trace!(
-            "Writing {} bytes of memory starting at 0x{:X}",
+            "Dumping {:X} bytes of memory starting at 0x{:X}",
             memory_range.1 - memory_range.0,
             memory_range.0
         );
