@@ -2,8 +2,6 @@ use crate::math::Vector2;
 
 use super::types::*;
 
-pub type Overlay = Box<dyn Draw + Sync + Send + 'static>;
-
 pub trait Draw {
     fn draw_line(&mut self, p1: Vector2, p2: Vector2, options: LineOptions);
     fn draw_box(&mut self, p1: Vector2, p2: Vector2, options: BoxOptions);

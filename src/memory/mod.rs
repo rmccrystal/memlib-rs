@@ -114,7 +114,7 @@ impl Handle {
 
         let bytes = self
             .interface
-            .read_bytes(address, size)?;
+            .read_bytes(address, size).context(anyhow!("Could not read 0x{:X}", address))?;
         // Convert the raw bytes into the type we need to return
         let value = unsafe {
             // We do this by casting the pointer to the bytes as a pointer to T
@@ -138,7 +138,7 @@ impl Handle {
         // https://stackoverflow.com/a/42186553
         let buff = unsafe { slice::from_raw_parts((&value as *const T) as *const u8, size) };
 
-        self.write_bytes(address, buff)
+        self.write_bytes(address, buff).context(anyhow!("Could not write 0x{:X}", address))
     }
 
     /// Writes memory of type T to a process. If it is successful,

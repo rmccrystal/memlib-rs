@@ -29,7 +29,7 @@ pub mod winutil;
 #[macro_use]
 pub mod macros;
 
-fn main() {
+fn _asdmain() {
     let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
     // let handle = Handle::from_interface(WinAPIProcessHandle::attach("notepad.exe").unwrap());
     let module = handle.get_module("notepad.exe").unwrap();
@@ -65,7 +65,7 @@ fn n_main() {
     let lis = InputEventListener::new();
 }
 
-fn samain() {
+fn main() {
     MinimalLogger::init(LevelFilter::Trace).unwrap();
 
     let window = overlay::window::Window::hijack_nvidia().unwrap();
@@ -79,8 +79,8 @@ fn samain() {
                 ui.button(im_str!("button"), [100.0, 200.0]);
             })
     }, move |overlay| {
-        // overlay.draw_line(overlay.ui.io().mouse_pos.into(), (0, 0).into(), LineOptions::default().color(Color::rose5()).width(15.0));
-        // esp(overlay);
+        overlay.draw_line(overlay.ui.io().mouse_pos.into(), (0, 0).into(), LineOptions::default().color(Color::rose5()).width(15.0));
+        esp(overlay);
     })
 }
 

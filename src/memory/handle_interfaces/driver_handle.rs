@@ -43,7 +43,7 @@ impl ProcessHandleInterface for DriverProcessHandle {
                 name: m.module_name.clone(),
                 size: m.size,
             })
-            .find(|m| m.name.to_lowercase() == module_name)
+            .find(|m| m.name.to_lowercase() == module_name.to_lowercase())
     }
 
     fn get_process_info(&self) -> ProcessInfo {
