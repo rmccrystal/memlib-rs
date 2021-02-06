@@ -1,6 +1,8 @@
+use serde::{Serialize, Deserialize};
+
 /// An RGBA color
 // stored as AGBR for some reason
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Color(u32);
 
 impl Color {
