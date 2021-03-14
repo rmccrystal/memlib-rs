@@ -30,6 +30,7 @@ anyhow = "1.0.37"
 iced-x86 = "1.10.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 kernel-client = { path = "../kernel-rs/client" }
+ntapi = "0.3.6"
 imgui-dx9-renderer = "0.6.0"
 winapi = { version = "0.3.9", features = ["std", "memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi", "windef", "winuser", "d3d11", "dxgi", "dxgitype", "dwmapi", "uxtheme", "d3d9caps", "synchapi", "wow64apiset"] }
 postcard = { version = "0.5.1", features = ["alloc"] }

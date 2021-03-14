@@ -66,6 +66,7 @@ pub(crate) trait ToError {
 impl ToError for NTSTATUS {
     fn to_err(self) -> Result<()> {
         if FAILED(self) {
+            // Err(std::io::Error::from_raw_os_error(self as _).into())
             Err(anyhow!(
                 "{} ({:X})",
                 error_code_to_message(self as _).unwrap_or_default(),

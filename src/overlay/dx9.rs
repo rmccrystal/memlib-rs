@@ -16,25 +16,6 @@ use winapi::um::winuser::*;
 use crate::overlay::window::Window;
 use crate::winutil::ToError;
 
-macro_rules! c_string {
-    ($str:expr) => {
-        std::ffi::CString::new($str).unwrap().as_ptr()
-    };
-}
-
-#[allow(unused_macros)]
-macro_rules! c_string_w {
-    ($str:expr) => {{
-        let ptr: *const u16 = {
-            let text: Vec<u16> = OsStr::new($str)
-                .encode_wide()
-                .chain(Some(0).into_iter())
-                .collect();
-            text.as_ptr()
-        };
-        ptr
-    }};
-}
 
 pub struct D3DDevice9(pub(crate) LPDIRECT3DDEVICE9);
 

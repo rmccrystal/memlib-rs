@@ -16,7 +16,7 @@ use winapi::um::winuser::*;
 
 use crate::math::Vector2;
 use crate::overlay::imgui::fonts::create_fonts;
-use crate::overlay::util::{create_d3d_device, D3DDevice9};
+use crate::overlay::dx9::{create_d3d_device, D3DDevice9};
 use crate::overlay::{BoxOptions, CircleOptions, Draw, LineOptions, TextOptions, TextStyle};
 
 use crate::winutil::{ToError, InputEventListener, Event};
@@ -25,7 +25,7 @@ use winapi::shared::minwindef::TRUE;
 use super::types;
 use crate::winutil::is_key_down;
 use super::window;
-use winapi::shared::windef::POINT;
+use winapi::shared::windef::{POINT, RECT};
 
 
 mod fonts;
@@ -41,6 +41,7 @@ pub struct Imgui {
     pub config: ImguiConfig,
     input_listener: InputEventListener,
     ui_enabled: bool,
+    last_window_size: RECT
 }
 
 unsafe impl Send for Imgui{}
@@ -75,6 +76,8 @@ impl Imgui {
 
         let input_listener = InputEventListener::new();
 
+        let rect = window.get_rect();
+
         Ok(Self {
             renderer,
             context,
@@ -86,6 +89,7 @@ impl Imgui {
             config,
             input_listener,
             ui_enabled: false,
+            last_window_size: rect
         })
     }
 
@@ -123,11 +127,6 @@ impl Imgui {
 
     fn update_mouse_pos(&mut self) {
         unsafe {
-            let foreground_window = GetForegroundWindow();
-            if foreground_window.is_null() {
-                return;
-            }
-
             let mut pos: POINT = std::mem::zeroed();
             if GetCursorPos(&mut pos) == TRUE && ScreenToClient(self.window.hwnd, &mut pos) == TRUE {
                 self.context.io_mut().mouse_pos = [pos.x as _, pos.y as _];
@@ -177,8 +176,7 @@ impl Imgui {
 
     fn update_window(&mut self) {
         unsafe {
-            // self.window.set_above_foreground_window();
-            self.window.handle_messages();
+            self.window.tick();
 
             let io = self.context.io_mut();
 
@@ -214,7 +212,7 @@ impl Imgui {
         }
     }
 
-    pub fn update_keybinds(&mut self) {
+    fn update_keybinds(&mut self) {
         if let None = self.config.toggle_menu_key {
             return;
         }
@@ -227,35 +225,55 @@ impl Imgui {
         }
     }
 
+    fn update_directx(&mut self) {
+        let rect = self.window.get_rect();
+        let last_rect = &self.last_window_size;
+        if !((rect.top == last_rect.top)
+            && (rect.bottom == last_rect.bottom)
+            && (rect.right == last_rect.right)
+            && (rect.left == last_rect.left))
+        {
+            // update device
+            self.device = unsafe { create_d3d_device(&self.window).unwrap() };
+            self.renderer = unsafe { imgui_dx9_renderer::Renderer::new_raw(&mut self.context, &mut *self.device) }.unwrap();
+            self.last_window_size = rect;
+        }
+    }
+
     pub fn main_loop(&mut self, mut run_ui: impl FnMut(&mut Ui, &RenderContext), mut run_overlay: impl FnMut(&mut OverlayWindow)) {
         loop {
-            self.update_window();
-            self.update_mouse_pos();
-            self.update_keyboard();
-            self.update_keybinds();
-
-            let draw_data = {
-                let context = RenderContext {
-                    font_ids: &self.font_ids
-                };
-                let mut ui = self.context.frame();
-
-                self.window.set_clickthrough(!self.ui_enabled);
-                if self.ui_enabled {
-                    run_ui(&mut ui, &context);
-                }
-
-                let mut overlay_window = OverlayWindow::begin(&mut ui, &self.font_ids, self.config.align_to_pixel);
-                run_overlay(&mut overlay_window);
-                overlay_window.end();
-
-                Self::update_cursor(&ui);
-
-                ui.render()
-            };
-
-            Self::present(&self.device, &mut self.renderer, &draw_data);
+            self.render(&mut run_ui, &mut run_overlay);
         }
+    }
+
+    pub fn render(&mut self, run_ui: &mut impl FnMut(&mut Ui, &RenderContext), run_overlay: &mut impl FnMut(&mut OverlayWindow)) {
+        self.update_window();
+        self.update_directx();
+        self.update_mouse_pos();
+        self.update_keyboard();
+        self.update_keybinds();
+
+        let draw_data = {
+            let context = RenderContext {
+                font_ids: &self.font_ids
+            };
+            let mut ui = self.context.frame();
+
+            self.window.set_clickthrough(!self.ui_enabled);
+            if self.ui_enabled {
+                run_ui(&mut ui, &context);
+            }
+
+            let mut overlay_window = OverlayWindow::begin(&mut ui, &self.font_ids, self.config.align_to_pixel);
+            run_overlay(&mut overlay_window);
+            overlay_window.end();
+
+            Self::update_cursor(&ui);
+
+            ui.render()
+        };
+
+        Self::present(&self.device, &mut self.renderer, &draw_data);
     }
 }
 

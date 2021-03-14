@@ -10,7 +10,7 @@ pub use color::Color;
 
 mod overlay;
 #[macro_use]
-pub(crate) mod util;
+pub(crate) mod dx9;
 
 pub mod imgui;
 pub mod window;

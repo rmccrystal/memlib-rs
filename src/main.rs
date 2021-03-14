@@ -15,7 +15,14 @@ use log::LevelFilter;
 use crate::winutil::{get_pid_by_name, inject_func, InputEventListener, Event};
 use winapi::um::processthreadsapi::GetCurrentProcessId;
 use win_key_codes::VK_INSERT;
+use winapi::um::winuser::GetWindowTextA;
+use memlib::winutil::{LogitechDriver, MouseInput};
+use std::time::Duration;
 
+#[macro_use]
+pub mod winutil;
+#[macro_use]
+pub mod macros;
 
 pub mod hacks;
 pub mod logger;
@@ -24,10 +31,6 @@ pub mod memory;
 pub mod overlay;
 pub mod system;
 pub mod util;
-pub mod winutil;
-
-#[macro_use]
-pub mod macros;
 
 fn _asdmain() {
     let handle = Handle::from_interface(DriverProcessHandle::attach("notepad.exe").unwrap());
@@ -68,8 +71,12 @@ fn n_main() {
 fn main() {
     MinimalLogger::init(LevelFilter::Trace).unwrap();
 
-    let window = overlay::window::Window::hijack_nvidia().unwrap();
-    let mut imgui = Imgui::from_window(window, ImguiConfig{toggle_menu_key: Some(VK_INSERT)}).unwrap();
+    let mut window = overlay::window::Window::hijack_nvidia().unwrap();
+    window.bypass_screenshots(false).unwrap();
+
+    window.target_window("Untitled - Notepad").unwrap();
+    let mut imgui = Imgui::from_window(window, ImguiConfig{toggle_menu_key: Some(VK_INSERT), align_to_pixel: true }).unwrap();
+
 
     let _opened = true;
     imgui.main_loop(move |ui, _ctx| {

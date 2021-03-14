@@ -66,7 +66,5 @@ pub fn dump_process(handle: &memory::Handle, module: &memory::Module) -> Result<
         ((dos_header.e_lfanew.get(LittleEndian) as u64) - size_of::<ImageDosHeader>()) as _
     ).context("Error reading dos stub")?;
 
-
-
     Ok(vec![])
 }

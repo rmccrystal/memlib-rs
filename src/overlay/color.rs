@@ -1,9 +1,11 @@
 use serde::{Serialize, Deserialize};
+use imgui::sys::ImU32;
+use imgui::EditableColor;
 
 /// An RGBA color
 // stored as AGBR for some reason
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Color(u32);
+pub struct Color(ImU32);
 
 impl Color {
     /// Creates a color from an RGBA unsigned int
@@ -113,6 +115,18 @@ impl From<Color> for u32 {
 impl From<u32> for Color {
     fn from(val: u32) -> Self {
         Color::new(val)
+    }
+}
+
+impl Into<[f32; 4]> for Color {
+    fn into(self) -> [f32; 4] {
+        let rgba = self.to_rgba();
+        [
+            (rgba.0 as f32) / 255.0,
+            (rgba.1 as f32) / 255.0,
+            (rgba.2 as f32) / 255.0,
+            (rgba.3 as f32) / 255.0
+        ]
     }
 }
 

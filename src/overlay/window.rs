@@ -13,45 +13,57 @@ use winapi::um::uxtheme::MARGINS;
 use winapi::um::winuser::*;
 
 use crate::winutil::{inject_func};
+use std::ptr::null;
+use std::time::{Instant, Duration};
 
 
 pub struct Window {
     pub(crate) hwnd: HWND,
+    pub target_hwnd: Option<HWND>,
+    last_update: Instant,
+    last_clickthrough: bool,
+    last_foreground_window: Option<HWND>,
 }
 
+unsafe impl Send for Window {}
+
+unsafe impl Sync for Window {}
+
 impl Window {
+    pub fn from_hwnd(hwnd: HWND) -> Result<Self> {
+        let mut window = Self {
+            hwnd,
+            target_hwnd: None,
+            last_update: Instant::now() - Duration::from_secs(60),
+            last_clickthrough: true,
+            last_foreground_window: None,
+        };
+
+        window.set_style(GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW)?;
+        window.extend_into_client_area();
+        window.set_alpha(0xFF);
+        window.show();
+
+        window.set_clickthrough(true);
+
+        Ok(window)
+    }
+
     /// Hijacks a window from its class name and window name
-    pub fn hijack(class_name: &str, window_name: &str) -> Result<Window> {
-        unsafe {
-            let hwnd = Self::find_window(class_name, window_name)
-                .ok_or_else(|| anyhow!(
+    pub fn hijack(class_name: &str, window_name: &str) -> Result<Self> {
+        let hwnd = find_window(Some(class_name), window_name)
+            .ok_or_else(|| anyhow!(
                 "Could not find window with class name {} and window name {}",
                 class_name,
                 window_name
                 ))?;
 
-            trace!("Found hWnd with class_name: {} and window_name: {}: {:p}", class_name, window_name, hwnd);
+        trace!("Found hWnd with class_name: {} and window_name: {}: {:p}", class_name, window_name, hwnd);
 
-            let window = Self { hwnd };
-
-            window.set_style(GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW)?;
-            window.extend_into_client_area();
-            window.set_alpha(0xFF);
-
-            // Set window as topmost
-            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-
-            window.set_affinity(WindowAffinity::WdaExcludeFromCapture)?;
-
-            window.show();
-
-            window.set_clickthrough(true);
-
-            Ok(window)
-        }
+        Self::from_hwnd(hwnd)
     }
 
-    pub fn create() -> Result<Window> {
+    pub fn create() -> Result<Self> {
         let class_name = "Edit";
         let window_name = "Notepad";
 
@@ -63,8 +75,8 @@ impl Window {
                 WS_POPUP,
                 0,  // TODO
                 0,
-                1920,
-                1080,
+                100,
+                200,
                 null_mut(),
                 null_mut(),
                 null_mut(),
@@ -72,12 +84,51 @@ impl Window {
             )
         };
 
-        let window = Self { hwnd };
+        Self::from_hwnd(hwnd)
+    }
 
-        window.extend_into_client_area();
-        window.show();
+    pub fn target_window(&mut self, window_name: &str) -> Result<()> {
+        let window = find_window(None, window_name)
+            .ok_or_else(|| anyhow!("Could not find window {}", window_name))?;
 
-        Ok(window)
+        self.target_hwnd = Some(window);
+
+        self.update_target_window();
+
+        Ok(())
+    }
+
+    pub fn tick(&mut self) {
+        self.handle_messages();
+
+        if self.last_update < (Instant::now() - Duration::from_secs(1)) {
+            self.update_target_window();
+            self.set_above_foreground_window();
+
+            self.last_update = Instant::now();
+        }
+    }
+
+    fn update_target_window(&self) {
+        if self.target_hwnd.is_none() {
+            return;
+        }
+
+        let target_hwnd = self.target_hwnd.unwrap();
+        unsafe {
+            let mut rect = std::mem::zeroed();
+            GetWindowRect(target_hwnd, &mut rect);
+
+            if rect.bottom == 0 && rect.top == 0 {
+                panic!("Error updating target window: could not get the window rect");
+            }
+
+            let width = rect.right - rect.left;
+            let height = rect.bottom - rect.top;
+
+            trace!("Moving window to X: {}, Y: {}, width: {}, height: {}", rect.left, rect.top, width, height);
+            MoveWindow(self.hwnd, rect.left, rect.top, width, height, 1);
+        }
     }
 
     /// Hijacks the NVIDIA overlay
@@ -85,15 +136,12 @@ impl Window {
         Self::hijack("CEF-OSC-WIDGET", "NVIDIA GeForce Overlay")
     }
 
-    fn find_window(class_name: &str, window_name: &str) -> Option<HWND> {
-        unsafe {
-            let hwnd = FindWindowA(c_string!(class_name), c_string!(window_name));
-            if hwnd.is_null() {
-                None
-            } else {
-                Some(hwnd)
-            }
-        }
+    fn set_topmost(&self) {
+        unsafe { SetWindowPos(self.hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE) };
+    }
+
+    pub fn bypass_screenshots(&self, enabled: bool) -> Result<()> {
+        self.set_affinity(if enabled { WindowAffinity::WdaExcludeFromCapture } else { WindowAffinity::WdaNone })
     }
 
     pub fn set_alpha(&self, alpha: u8) {
@@ -118,11 +166,11 @@ impl Window {
     /// Sets the window position to be one layer above the current foreground window
     pub fn set_above_foreground_window(&self) {
         unsafe {
-            let foreground_window = GetWindow(GetForegroundWindow(), GW_HWNDPREV);
-            if foreground_window != self.hwnd {
+            let window = GetWindow(GetForegroundWindow(), GW_HWNDPREV);
+            if window != self.hwnd {
                 SetWindowPos(
                     self.hwnd,
-                    foreground_window,
+                    window,
                     0,
                     0,
                     0,
@@ -154,7 +202,6 @@ impl Window {
             if PeekMessageA(&mut msg, self.hwnd, 0, 0, PM_REMOVE) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageA(&msg);
-                dbg!(msg.lParam, msg.pt.x, msg.pt.y, msg.wParam, msg.message);
                 true
             } else {
                 false
@@ -162,8 +209,27 @@ impl Window {
         }
     }
 
-    pub fn set_clickthrough(&self, clickthrough: bool) {
-        self.set_style_flag(GWL_EXSTYLE, WS_EX_TRANSPARENT, clickthrough).expect("Could not set clickthrough");
+    pub fn set_clickthrough(&mut self, clickthrough: bool) {
+        if clickthrough != self.last_clickthrough {
+            self.last_clickthrough = clickthrough;
+
+            self.set_style_flag(GWL_EXSTYLE, WS_EX_TRANSPARENT, clickthrough).expect("Could not set clickthrough");
+
+            unsafe {
+                match clickthrough {
+                    false => {
+                        self.last_foreground_window = Some(GetForegroundWindow());
+                        SetForegroundWindow(self.hwnd);
+                    },
+                    true => {
+                        if let Some(window) = self.last_foreground_window {
+                            SetForegroundWindow(window);
+                            self.last_foreground_window = None;
+                        }
+                    }
+                }
+            };
+        }
     }
 
     /// Sets a single style flag
@@ -193,7 +259,7 @@ impl Window {
     }
 
     pub fn get_style(&self, n_index: i32) -> Result<u32> {
-        let style = unsafe {GetWindowLongA(self.hwnd, n_index) };
+        let style = unsafe { GetWindowLongA(self.hwnd, n_index) };
         Ok(style as _)
     }
 
@@ -206,7 +272,7 @@ impl Window {
 
     pub fn set_affinity(&self, affinity: WindowAffinity) -> Result<()> {
         if self.get_affinity()? == affinity {
-            return Ok(())
+            return Ok(());
         }
         unsafe {
             // If the HWND is owned by this process, we can just call swda
@@ -290,6 +356,38 @@ impl Window {
             bail!("GetWindowThreadProcessId failed");
         }
         Ok(pid)
+    }
+}
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        unsafe {
+            if GetCurrentProcessId() == self.get_owner_pid().unwrap() {
+                DestroyWindow(self.hwnd);
+            }
+        }
+    }
+}
+
+fn find_window(class_name: Option<&str>, window_name: &str) -> Option<HWND> {
+    unsafe {
+        let class_name = class_name.map(|n| std::ffi::CString::new(n).unwrap());
+        let hwnd = if class_name.is_none() {
+            FindWindowA(
+                null(),
+                c_string!(window_name),
+            )
+        } else {
+            FindWindowA(
+                class_name.unwrap().as_ptr(),
+                c_string!(window_name),
+            )
+        };
+        if hwnd.is_null() {
+            None
+        } else {
+            Some(hwnd)
+        }
     }
 }
 

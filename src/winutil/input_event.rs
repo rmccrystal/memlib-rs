@@ -83,7 +83,7 @@ fn listen_thread() {
     let mut keyboard_state = get_keyboard_state();
     let mut prev_keyboard_state = keyboard_state.clone();
     loop {
-        std::thread::sleep(Duration::from_micros(1));
+        std::thread::sleep(Duration::from_millis(1));
 
         keyboard_state = get_keyboard_state();
 

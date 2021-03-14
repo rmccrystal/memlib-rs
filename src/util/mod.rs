@@ -50,11 +50,11 @@ impl LoopTimer {
             had_to_sleep = true;
         }
         if !had_to_sleep {
-            let _ms_diff = (Instant::now() - self.last_tick).as_millis();
-            // warn!("Loop took {} ms too long (delay: {}ms, took: {}ms)",
-            //       ms_diff - self.ms_delay as u128,
-            //       self.ms_delay,
-            //       ms_diff);
+            let ms_diff = (Instant::now() - self.last_tick).as_millis();
+            warn!("Loop took {} ms too long (delay: {}ms, took: {}ms)",
+                  ms_diff - self.ms_delay as u128,
+                  self.ms_delay,
+                  ms_diff);
         }
 
         // Update last tick
