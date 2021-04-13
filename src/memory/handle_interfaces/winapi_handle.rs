@@ -32,9 +32,13 @@ impl WinAPIProcessHandle {
         let process_name = process_name.to_string();
         let pid = get_pid_by_name(&process_name).ok_or_else(|| anyhow!("Could not find {}", process_name))?;
 
+        trace!("Opening pid {} with PROCESS_ALL_ACCESS", pid);
         let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
 
-        get_last_error_result(process_handle).context("OpenProcess failed")?;
+        // get_last_error_result(process_handle).context("OpenProcess failed")?;
+        if process_handle.is_null() {
+            bail!("OpenProcess failed");
+        }
 
         return Ok(WinAPIProcessHandle {
             process_handle,
@@ -123,9 +127,15 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
             }
         };
 
-        let module = module_list.into_iter().find(|module| {
-            c_char_array_to_string(module.szModule.to_vec()) == module_name.to_lowercase()
-        })?;
+        let mut modules = module_list.into_iter().map(|module| {
+            (c_char_array_to_string(module.szModule.to_vec()), module)
+        }).collect::<Vec<_>>();
+
+        let (module_name, module) = modules
+            .into_iter()
+            .find(|(name, entry)| {
+                name.to_lowercase() == module_name.to_lowercase()
+            })?;
 
         Some(Module {
             name: module_name.to_string(),
@@ -144,7 +154,8 @@ impl ProcessHandleInterface for WinAPIProcessHandle {
         ProcessInfo {
             process_name: self.process_name.clone(),
             peb_base_address: 0, // Not implemented
-            bitness: if is_64_bit { 64 } else { 32 }
+            bitness: if is_64_bit { 64 } else { 32 },
+            pid: self.pid
         }
     }
 }

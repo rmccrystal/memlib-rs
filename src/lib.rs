@@ -10,3 +10,6 @@ pub mod memory;
 pub mod overlay;
 pub mod system;
 pub mod util;
+
+#[cfg(feature = "internal")]
+pub mod internal;

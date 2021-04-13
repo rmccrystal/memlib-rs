@@ -13,7 +13,7 @@ mod pointer;
 pub mod handle_interfaces;
 pub mod scan;
 
-pub use findpattern::find_pattern;
+pub use findpattern::*;
 pub use global_handle::*;
 pub use pointer::*;
 pub use scan::*;
@@ -56,7 +56,9 @@ pub struct ProcessInfo {
     /// The name of the process
     pub process_name: String,
     /// 32 bit or 64 bit (number is either 32 or 64)
-    pub bitness: u16
+    pub bitness: u16,
+    /// Pid of process
+    pub pid: u32
 }
 
 /// A handle to a process allowing Reading and writing memory
@@ -78,7 +80,7 @@ impl Handle {
 
     pub fn from_interface<T: 'static + ProcessHandleInterface>(interface: T) -> Self {
         let interface = Box::new(interface);
-        Self{interface}
+        Self { interface }
     }
 
     #[cfg(target_os = "linux")]
@@ -169,11 +171,11 @@ impl Handle {
 
     /// Dumps memory from memory_range.0 to memory_range.1
     /// Returns a boxed byte slice
-    pub fn dump_memory(&self, memory_range: (Address, Address)) -> Box<[u8]> {
+    pub fn dump_memory(&self, memory_range: (Address, Address)) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
 
         trace!(
-            "Dumping {:X} bytes of memory starting at 0x{:X}",
+            "Dumping {} bytes of memory starting at 0x{:X}",
             memory_range.1 - memory_range.0,
             memory_range.0
         );
@@ -204,7 +206,10 @@ impl Handle {
                 }
             };
 
-            let memory = self.read_bytes(current_offset, read_size).unwrap();
+            let memory = self.read_bytes(current_offset, read_size).unwrap_or_else(|e| {
+                warn!("Could not read {} bytes at 0x{:X}, defaulting to 0", read_size, current_offset);
+                vec![0; read_size].into_boxed_slice()
+            });
 
             // Append the slice of memory to the buffer
             buffer.extend_from_slice(&memory);
@@ -212,7 +217,7 @@ impl Handle {
             current_offset += read_size as Address;
         }
 
-        buffer.into_boxed_slice()
+        buffer
     }
 
     /// Reads a null terminated i8 array string starting at `address`

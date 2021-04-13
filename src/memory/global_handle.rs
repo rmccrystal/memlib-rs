@@ -68,7 +68,7 @@ pub fn read_array<T>(address: Address, length: usize) -> Vec<T> {
 
 /// Dumps memory from memory_range.0 to memory_range.1
 /// Returns a boxed byte slice
-pub fn dump_memory(memory_range: (Address, Address)) -> Box<[u8]> {
+pub fn dump_memory(memory_range: (Address, Address)) -> Vec<u8> {
     get_global_handle().dump_memory(memory_range)
 }
 
