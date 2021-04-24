@@ -207,7 +207,7 @@ impl Handle {
             };
 
             let memory = self.read_bytes(current_offset, read_size).unwrap_or_else(|e| {
-                warn!("Could not read {} bytes at 0x{:X}, defaulting to 0", read_size, current_offset);
+                debug!("Could not read {} bytes at 0x{:X}, defaulting to 0", read_size, current_offset);
                 vec![0; read_size].into_boxed_slice()
             });
 

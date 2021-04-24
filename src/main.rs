@@ -1,4 +1,5 @@
 #![feature(asm)]
+#![feature(const_fn)]
 
 use crate::overlay::imgui::{Imgui, ImguiConfig};
 use crate::overlay::{Color, Draw, Font, LineOptions, TextOptions, TextStyle};
@@ -71,7 +72,7 @@ fn n_main() {
 fn main() {
     MinimalLogger::init(LevelFilter::Trace).unwrap();
 
-    let mut window = overlay::window::Window::hijack_nvidia().unwrap();
+    let mut window = overlay::window::Window::create().unwrap();
     window.bypass_screenshots(false).unwrap();
 
     window.target_window("Untitled - Notepad").unwrap();

@@ -3,6 +3,11 @@ use log::*;
 use pretty_hex::*;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
+use parking_lot::lock_api::RawRwLock;
+use std::ops::Deref;
+use std::cell::UnsafeCell;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// A timer which runs a loop at a consistent rate
 /// For example, in a game hack, we might want to run the main
@@ -92,4 +97,101 @@ pub fn get_boudning_box(points: Vec<Vector2>) -> (Vector2, Vector2) {
     }
 
     (Vector2 { x: left, y: bottom }, Vector2 { x: right, y: top })
+}
+
+pub struct InitCell<T> {
+    inner: UnsafeCell<Option<parking_lot::RwLock<T>>>,
+    init: AtomicBool,
+}
+
+unsafe impl<T> Sync for InitCell<T> {}
+
+impl<T: Clone> InitCell<T> {
+    pub const fn new() -> Self {
+        Self {
+            inner: UnsafeCell::new(None),
+            init: AtomicBool::new(false),
+        }
+    }
+
+    pub fn init(&self, val: T) {
+        if self.init.load(Ordering::Relaxed) {
+            panic!("InitCell init() called twice");
+        }
+        let inner = self.inner.get();
+        unsafe { *inner = Some(parking_lot::RwLock::new(val)); }
+        self.init.store(false, Ordering::Relaxed);
+    }
+
+    pub fn get_clone(&self) -> T {
+        (*self.get_ref()).clone()
+    }
+
+    fn get_inner(&self) -> &parking_lot::RwLock<T> {
+        unsafe { self.inner.get().as_ref() }.unwrap().as_ref().unwrap()
+    }
+
+    /// Gets a refrence of the contents of the cell
+    pub fn get_ref(&self) -> RwLockReadGuard<'_, T> {
+        self.get_inner().read()
+    }
+
+    /// Gets a mutable refrence of the contents of the cell
+    pub fn get_mut(&self) -> RwLockWriteGuard<'_, T> {
+        self.get_inner().write()
+    }
+
+    /// Sets the value
+    pub fn set(&self, value: T) {
+        // Wait until cell is writable
+        let mut lock = self.get_inner().write();
+        *lock = value;
+    }
+}
+
+impl<T: Copy> InitCell<T> {
+    /// Gets a copy of whatever is stored in the cell
+    pub fn get(&self) -> T {
+        *self.get_inner().read()
+    }
+}
+
+pub struct GlobalCell<T> {
+    inner: parking_lot::RwLock<T>
+}
+
+impl<T: Clone> GlobalCell<T> {
+    pub const fn new(value: T) -> Self {
+        Self {
+            inner: parking_lot::const_rwlock(value)
+        }
+    }
+
+    /// Gets a refrence of the contents of the cell
+    pub fn get_ref(&self) -> RwLockReadGuard<'_, T> {
+        self.inner.read()
+    }
+
+    /// Gets a mutable refrence of the contents of the cell
+    pub fn get_mut(&self) -> RwLockWriteGuard<'_, T> {
+        self.inner.write()
+    }
+
+    pub fn get_clone(&self) -> T {
+        (*self.get_ref()).clone()
+    }
+
+    /// Sets the value
+    pub fn set(&self, value: T) {
+        // Wait until cell is writable
+        let mut lock = self.inner.write();
+        *lock = value;
+    }
+}
+
+impl<T: Copy> GlobalCell<T> {
+    /// Gets a copy of whatever is stored in the cell
+    pub fn get(&self) -> T {
+        *self.inner.read()
+    }
 }

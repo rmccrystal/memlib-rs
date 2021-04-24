@@ -7,7 +7,7 @@ use log::*;
 use winapi::_core::ptr::null_mut;
 use winapi::shared::windef::{HWND, RECT};
 use winapi::um::dwmapi::DwmExtendFrameIntoClientArea;
-use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA, FreeLibrary};
+use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA, FreeLibrary, GetModuleHandleA};
 use winapi::um::processthreadsapi::GetCurrentProcessId;
 use winapi::um::uxtheme::MARGINS;
 use winapi::um::winuser::*;
@@ -15,6 +15,14 @@ use winapi::um::winuser::*;
 use crate::winutil::{inject_func};
 use std::ptr::null;
 use std::time::{Instant, Duration};
+use winapi::um::wingdi::CreateSolidBrush;
+use winapi::shared::minwindef::{UINT, WPARAM, LPARAM, LRESULT};
+use std::ffi::{OsStr, OsString};
+use winit::window::WindowBuilder;
+use winit::platform::windows::{WindowExtWindows, EventLoopExtWindows};
+use winit::event_loop::{EventLoop, ControlFlow};
+use winit::event::{Event, WindowEvent};
+use std::sync::mpsc::channel;
 
 
 pub struct Window {
@@ -40,9 +48,11 @@ impl Window {
         };
 
         window.set_style(GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW)?;
+        window.set_style(GWL_STYLE, WS_CLIPSIBLINGS | WS_POPUP | WS_VISIBLE);
         window.extend_into_client_area();
         window.set_alpha(0xFF);
         window.show();
+        window.set_style_flag(GWL_STYLE, WS_VISIBLE, true);
 
         window.set_clickthrough(true);
 
@@ -63,15 +73,66 @@ impl Window {
         Self::from_hwnd(hwnd)
     }
 
+    extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+        println!("window_proc");
+        dbg!(hwnd, msg, wparam, lparam);
+        unsafe { DefWindowProcA(hwnd, msg, wparam, lparam) }
+    }
+
     pub fn create() -> Result<Self> {
-        let class_name = "Edit";
-        let window_name = "Notepad";
+        let (send, rec) = channel();
+        std::thread::spawn(move || {
+            let event_loop: EventLoop<()> = EventLoop::new_any_thread();
+            let window = WindowBuilder::new()
+                .with_transparent(true)
+                .build(&event_loop).unwrap();
+            send.send(window.hwnd() as usize);
+            event_loop.run(move |event, _, control_flow| {
+                *control_flow = ControlFlow::Wait;
+
+                match event {
+                    Event::WindowEvent {
+                        event: WindowEvent::CloseRequested,
+                        window_id,
+                    } if window_id == window.id() => *control_flow = ControlFlow::Exit,
+                    _ => (),
+                }
+            });
+        });
+        Self::from_hwnd(rec.recv().unwrap() as _)
+    }
+
+    pub fn _create() -> Result<Self> {
+        let h_instance = unsafe { GetModuleHandleA(null_mut()) };
+
+        let class_name = std::ffi::CString::new("alskdjfasd").unwrap();
+
+        let window_class = unsafe {
+            WNDCLASSEXA {
+                cbSize: std::mem::size_of::<WNDCLASSEXA>() as _,
+                style: CS_HREDRAW | CS_VREDRAW,
+                lpfnWndProc: Some(Self::window_proc),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                lpszClassName: class_name.as_ptr(),
+                lpszMenuName: null(),
+                hInstance: h_instance,
+                hCursor: LoadCursorW(null_mut(), IDC_ARROW),
+                hIcon: LoadIconW(null_mut(), IDI_APPLICATION),
+                hIconSm: LoadIconW(null_mut(), IDI_APPLICATION),
+                hbrBackground: CreateSolidBrush(0),
+                ..std::mem::zeroed()
+            }
+        };
+        if unsafe { RegisterClassExA(&window_class) } == 0 {
+            bail!("RegisterClassExA failed: {}", std::io::Error::last_os_error());
+        }
 
         let hwnd = unsafe {
             CreateWindowExA(
                 WS_EX_LAYERED | WS_EX_TRANSPARENT,
-                c_string!(class_name),
-                c_string!(window_name),
+                class_name.as_ptr(),
+                class_name.as_ptr(),
                 WS_POPUP,
                 0,  // TODO
                 0,
@@ -220,7 +281,7 @@ impl Window {
                     false => {
                         self.last_foreground_window = Some(GetForegroundWindow());
                         SetForegroundWindow(self.hwnd);
-                    },
+                    }
                     true => {
                         if let Some(window) = self.last_foreground_window {
                             SetForegroundWindow(window);
@@ -353,7 +414,7 @@ impl Window {
         let mut pid = 0;
         let _ = unsafe { GetWindowThreadProcessId(self.hwnd, &mut pid) };
         if pid == 0 {
-            bail!("GetWindowThreadProcessId failed");
+            bail!("GetWindowThreadProcessId failed: {:?}", std::io::Error::last_os_error());
         }
         Ok(pid)
     }

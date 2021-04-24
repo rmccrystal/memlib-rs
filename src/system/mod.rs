@@ -32,7 +32,6 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     let client = run_async(system_host::rpc::listen_channel())?;
 
     unsafe { CONNECTION = Some(client) }
-    info!("Connected to system through channel");
 
     Ok(())
 }

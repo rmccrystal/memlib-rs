@@ -55,3 +55,13 @@ macro_rules! unwrap_or_return {
         }
     };
 }
+
+#[macro_export]
+macro_rules! unwrap_or_continue {
+    ( $e:expr ) => {
+        match $e {
+            Some(x) => x,
+            None => continue,
+        }
+    };
+}

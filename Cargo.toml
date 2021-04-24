@@ -29,11 +29,15 @@ cached = "0.22.0"
 imgui = "0.6.1"
 anyhow = "1.0.37"
 iced-x86 = "1.10.0"
+parking_lot = "0.11.1"
+linreg = "0.2.0"
+failure = "0.1.8"
+winit = "0.24.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 kernel-client = { path = "../kernel-rs/client" }
 ntapi = "0.3.6"
 imgui-dx9-renderer = "0.6.0"
-winapi = { version = "0.3.9", features = ["std", "memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi", "windef", "winuser", "d3d11", "dxgi", "dxgitype", "dwmapi", "uxtheme", "d3d9caps", "synchapi", "wow64apiset"] }
+winapi = { version = "0.3.9", features = ["std", "memoryapi", "processthreadsapi", "tlhelp32", "ntdef", "handleapi", "windef", "winuser", "d3d11", "dxgi", "dxgitype", "dwmapi", "uxtheme", "d3d9caps", "synchapi", "wow64apiset", "wingdi"] }
 postcard = { version = "0.5.1", features = ["alloc"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 vmread = "0.1.5"

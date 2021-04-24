@@ -1,3 +1,5 @@
+#![feature(const_fn)]
+
 #[macro_use]
 pub mod macros;
 #[macro_use]

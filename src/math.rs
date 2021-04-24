@@ -42,6 +42,13 @@ impl_op_ex!(-|a: &Vector3, b: &Vector3| -> Vector3 {
         z: a.z - b.z,
     }
 });
+impl_op_ex!(*|a: &Vector3, mul: &f32| -> Vector3 {
+    Vector3 {
+        x: a.x * mul,
+        y: a.y * mul,
+        z: a.z * mul,
+    }
+});
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -194,6 +201,12 @@ impl_op_ex!(/ |a: &Angles2, div: &f32| -> Angles2 {
     Angles2{
         pitch: a.pitch / div,
         yaw: a.yaw / div
+    }
+});
+impl_op_ex!(* |a: &Angles2, mul: &f32| -> Angles2 {
+    Angles2{
+        pitch: a.pitch * mul,
+        yaw: a.yaw * mul
     }
 });
 

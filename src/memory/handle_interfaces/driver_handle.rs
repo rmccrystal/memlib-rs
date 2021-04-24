@@ -12,8 +12,8 @@ pub struct DriverProcessHandle {
 impl DriverProcessHandle {
     pub fn attach(process_name: impl ToString) -> Result<Self> {
         let process_name = process_name.to_string();
-        let handle = KernelHandle::new()?;
-        let pid = get_pid_by_name(&process_name).ok_or_else(|| anyhow!("Could not find process {}", process_name))?;
+        let handle = KernelHandle::new().unwrap();
+        let pid = get_pid_by_name(&process_name).ok_or_else(|| anyhow!("Could not find process {}", &process_name))?;
 
         Ok(Self {
             handle,
