@@ -16,7 +16,7 @@ use winapi::um::tlhelp32::*;
 use winapi::um::winnt::{PROCESS_ALL_ACCESS};
 
 use super::super::*;
-use crate::winutil::{get_pid_by_name, get_last_error_result, error_code_to_message, c_char_array_to_string};
+use winutil::{get_pid_by_name, get_last_error_result, error_code_to_message, c_char_array_to_string};
 use winapi::um::wow64apiset::IsWow64Process;
 
 pub struct WinAPIProcessHandle {
