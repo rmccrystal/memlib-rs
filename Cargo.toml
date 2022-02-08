@@ -3,6 +3,8 @@ name = "memlib"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+dataview = "0.1.2"
+obfstr = "0.3.0"
+anyhow = { version = "1.0.53", default-features = false }
+log = { version = "0.4.14", default-features = false }
