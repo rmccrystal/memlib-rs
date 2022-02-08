@@ -28,3 +28,10 @@ Cargo.lock
 *.dmp
 
 imgui.ini
+
+# Added by cargo
+#
+# already existing elements were commented out
+
+#/target
+#Cargo.lock

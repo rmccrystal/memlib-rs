@@ -1,3 +1,0 @@
-[submodule "kernel-rs"]
-	path = kernel-rs
-	url = https://github.com/rmccrystal/kernel-rs
