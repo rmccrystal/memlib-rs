@@ -18,7 +18,7 @@ use winapi::um::winnt::PROCESS_QUERY_INFORMATION;
 extern crate alloc;
 
 pub trait ProcessAttach: Send {
-    type ProcessType: MemoryRead + MemoryWrite + ModuleList;
+    type ProcessType: MemoryRead + MemoryWrite + ProcessInfo;
 
     fn attach(&self, process_name: &str) -> anyhow::Result<Self::ProcessType>;
 }
@@ -94,7 +94,7 @@ pub trait ProcessInfo: MemoryRead {
     fn get_pid(&self) -> u32;
 
     fn get_module_list(&self) -> Option<Vec<Module>> {
-        let peb_base = self.peb_base_address(self.get_pid())?;
+        let peb_base = self.peb_base_address()?;
 
         // PEB and PEB_LDR_DATA
         //
