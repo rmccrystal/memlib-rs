@@ -132,11 +132,11 @@ pub trait ProcessInfo: MemoryRead {
                 && list_entry.SizeOfImage != 0
             {
                 let name = list_entry.BaseDllName;
-                let size = (name.Length / 2) as _;
+                let size = name.MaximumLength as usize;
 
                 let base_name = self.try_read_bytes(name.Buffer as u64, size)?;
                 let base_name =
-                    unsafe { U16CString::from_ptr_truncate(base_name.as_ptr() as _, size) };
+                    unsafe { U16CString::from_ptr_str(base_name.as_ptr() as _) };
 
                 modules.push(Module {
                     name: base_name.to_string_lossy(),
