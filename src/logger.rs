@@ -9,8 +9,8 @@ impl<T: crate::System + Send + Sync> Logger<T> {
 }
 
 impl<T> log::Log for Logger<T>
-    where
-        T: crate::System + Send + Sync
+where
+    T: crate::System + Send + Sync,
 {
     fn enabled(&self, _: &Metadata) -> bool {
         true

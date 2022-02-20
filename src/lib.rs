@@ -1,8 +1,19 @@
 pub mod logger;
 
 use core::mem::MaybeUninit;
-use std::time::Duration;
 use dataview::Pod;
+use ntapi::ntldr::LDR_DATA_TABLE_ENTRY;
+use ntapi::ntpebteb::PEB;
+use ntapi::ntpsapi::{
+    NtQueryInformationProcess, ProcessBasicInformation, PEB_LDR_DATA, PROCESS_BASIC_INFORMATION,
+};
+use std::ptr;
+use std::time::Duration;
+use widestring::U16CString;
+use winapi::shared::ntdef::NT_SUCCESS;
+use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+use winapi::um::processthreadsapi::OpenProcess;
+use winapi::um::winnt::PROCESS_QUERY_INFORMATION;
 
 extern crate alloc;
 
@@ -79,17 +90,108 @@ impl Module {
     }
 }
 
-pub trait ModuleList {
-    fn get_module_list(&self) -> Vec<Module>;
+pub trait ModuleList: MemoryRead + ProcessInfo {
+    fn get_module_list(&self, pid: u32) -> Option<Vec<Module>> {
+        let peb_base = self.peb_base_address(pid)?;
 
-    fn get_module(&self, name: &str) -> Option<Module> {
-        self.get_module_list().into_iter().find(|m| m.name.to_lowercase() == name.to_lowercase())
+        // PEB and PEB_LDR_DATA
+        //
+        let peb = {
+            let memory = self.try_read_bytes(peb_base, core::mem::size_of::<PEB>())?;
+            unsafe { (memory.as_ptr() as *mut PEB).read_volatile() }
+        };
+        let peb_ldr_data = {
+            let memory =
+                self.try_read_bytes(peb.Ldr as u64, core::mem::size_of::<PEB_LDR_DATA>())?;
+            unsafe { (memory.as_ptr() as *mut PEB_LDR_DATA).read_volatile() }
+        };
+
+        // LIST_ENTRY
+        //
+        let ldr_list_head = peb_ldr_data.InLoadOrderModuleList.Flink;
+        let mut ldr_current_node = peb_ldr_data.InLoadOrderModuleList.Flink;
+
+        let mut modules = Vec::new();
+        loop {
+            // LDR_DATA_TABLE_ENTRY
+            //
+            let list_entry = {
+                let memory = self.try_read_bytes(
+                    ldr_current_node as u64,
+                    core::mem::size_of::<LDR_DATA_TABLE_ENTRY>(),
+                )?;
+                unsafe { (memory.as_ptr() as *mut LDR_DATA_TABLE_ENTRY).read_volatile() }
+            };
+
+            // Add the module to the list
+            //
+            if !list_entry.BaseDllName.Buffer.is_null()
+                && !list_entry.DllBase.is_null()
+                && list_entry.SizeOfImage != 0
+            {
+                let name = list_entry.BaseDllName;
+                let size = (name.Length / 2) as _;
+
+                let base_name = self.try_read_bytes(name.Buffer as u64, size)?;
+                let base_name =
+                    unsafe { U16CString::from_ptr_truncate(base_name.as_ptr() as _, size) };
+
+                modules.push(Module {
+                    name: base_name.to_string_lossy(),
+                    base: list_entry.DllBase as u64,
+                    size: list_entry.SizeOfImage as u64,
+                });
+            }
+
+            ldr_current_node = list_entry.InLoadOrderLinks.Flink;
+            if ldr_list_head as u64 == ldr_current_node as u64 {
+                break;
+            }
+        }
+
+        Some(modules)
+    }
+
+    fn get_module(&self, pid: u32, name: &str) -> Option<Module> {
+        self.get_module_list(pid)?
+            .into_iter()
+            .find(|m| m.name.to_lowercase() == name.to_lowercase())
     }
 }
 
 pub trait ProcessInfo {
     fn process_name(&self) -> String;
-    fn peb_base_address(&self) -> u64;
+
+    fn peb_base_address(&self, pid: u32) -> Option<u64> {
+        // Open a handle to the process
+        //
+        let handle = unsafe { OpenProcess(PROCESS_QUERY_INFORMATION, false as _, pid) };
+        if handle == INVALID_HANDLE_VALUE {
+            log::error!("Failed to open handle to process");
+            return None;
+        }
+
+        // Find the peb address using NtQueryInformationProcess
+        //
+        let mut pbi = MaybeUninit::uninit();
+        if !unsafe {
+            NT_SUCCESS(NtQueryInformationProcess(
+                handle as _,
+                ProcessBasicInformation,
+                pbi.as_mut_ptr() as _,
+                core::mem::size_of::<PROCESS_BASIC_INFORMATION>() as _,
+                ptr::null_mut(),
+            ))
+        } {
+            log::error!("Failed to execute NtQueryInformationProcess");
+            unsafe { CloseHandle(handle) };
+            return None;
+        }
+        unsafe { CloseHandle(handle) };
+        let pbi: PROCESS_BASIC_INFORMATION = unsafe { pbi.assume_init() };
+
+        Some(pbi.PebBaseAddress as u64)
+    }
 }
 
 pub trait System {
@@ -97,4 +199,3 @@ pub trait System {
     fn sleep(&self, duration: Duration);
     fn mouse_move(&self, dx: i32, dy: i32);
 }
-
