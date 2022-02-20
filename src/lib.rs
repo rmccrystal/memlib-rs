@@ -90,9 +90,11 @@ impl Module {
     }
 }
 
-pub trait ModuleList: MemoryRead + ProcessInfo {
-    fn get_module_list(&self, pid: u32) -> Option<Vec<Module>> {
-        let peb_base = self.peb_base_address(pid)?;
+pub trait ProcessInfo: MemoryRead {
+    fn get_pid(&self) -> u32;
+
+    fn get_module_list(&self) -> Option<Vec<Module>> {
+        let peb_base = self.peb_base_address(self.get_pid())?;
 
         // PEB and PEB_LDR_DATA
         //
@@ -152,20 +154,16 @@ pub trait ModuleList: MemoryRead + ProcessInfo {
         Some(modules)
     }
 
-    fn get_module(&self, pid: u32, name: &str) -> Option<Module> {
-        self.get_module_list(pid)?
+    fn get_module(&self, name: &str) -> Option<Module> {
+        self.get_module_list()?
             .into_iter()
             .find(|m| m.name.to_lowercase() == name.to_lowercase())
     }
-}
 
-pub trait ProcessInfo {
-    fn process_name(&self) -> String;
-
-    fn peb_base_address(&self, pid: u32) -> Option<u64> {
+    fn peb_base_address(&self) -> Option<u64> {
         // Open a handle to the process
         //
-        let handle = unsafe { OpenProcess(PROCESS_QUERY_INFORMATION, false as _, pid) };
+        let handle = unsafe { OpenProcess(PROCESS_QUERY_INFORMATION, false as _, self.get_pid()) };
         if handle == INVALID_HANDLE_VALUE {
             log::error!("Failed to open handle to process");
             return None;
