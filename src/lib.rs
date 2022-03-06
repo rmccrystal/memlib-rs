@@ -126,6 +126,9 @@ pub trait ModuleList {
     fn get_module(&self, name: &str) -> Option<Module> {
         self.get_module_list().into_iter().find(|m| m.name.to_lowercase() == name.to_lowercase())
     }
+
+    /// Gets the main module from the process.
+    fn get_main_module(&self) -> Module;
 }
 
 /// Represents a type that can retrieve the corresponding process's name and peb base address
