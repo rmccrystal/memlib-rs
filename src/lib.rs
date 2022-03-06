@@ -1,6 +1,5 @@
 use core::mem::MaybeUninit;
 use std::{mem, slice};
-use std::time::Duration;
 use dataview::Pod;
 
 extern crate alloc;
@@ -31,6 +30,15 @@ pub trait MemoryRead {
         self.try_read_bytes_into(address, &mut buf).map(|_| buf)
     }
 
+    /// Dumps a memory range into a Vector. If any part of the memory range is not
+    /// valid, it will return None
+    fn dump_memory(&self, range: MemoryRange) -> Option<Vec<u8>> {
+        self.try_read_bytes(range.0, (range.1 - range.0) as usize)
+    }
+}
+
+/// Extension trait for supplying generic util methods for MemoryRead
+pub trait MemoryReadExt: MemoryRead {
     /// Reads bytes from the process at the specified address into a value of type T.
     /// Returns None if the address is not valid
     fn try_read<T: Pod>(&self, address: u64) -> Option<T> {
@@ -56,20 +64,20 @@ pub trait MemoryRead {
     fn read<T: Pod>(&self, address: u64) -> T {
         self.try_read(address).unwrap()
     }
-
-    /// Dumps a memory range into a Vector. If any part of the memory range is not
-    /// valid, it will return None
-    fn dump_memory(&self, range: MemoryRange) -> Option<Vec<u8>> {
-        self.try_read_bytes(range.0, (range.1 - range.0) as usize)
-    }
 }
+
+impl<T: MemoryRead> MemoryReadExt for T {}
+impl MemoryReadExt for dyn MemoryRead {}
 
 /// Represents any type with a buffer that can be written to
 pub trait MemoryWrite {
     /// Writes bytes from the buffer into the process at the specified address.
     /// Returns None if the address is not valid
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()>;
+}
 
+/// Extension trait for supplying generic util methods for MemoryWrite
+pub trait MemoryWriteExt: MemoryWrite {
     /// Returns None if the address is not valid
     fn try_write<T: Pod>(&self, address: u64, buffer: &T) -> Option<()> {
         self.try_write_bytes(address, buffer.as_bytes())
@@ -87,6 +95,9 @@ pub trait MemoryWrite {
         self.try_write(address, buffer).unwrap()
     }
 }
+
+impl<T: MemoryWrite> MemoryWriteExt for T {}
+impl MemoryWriteExt for dyn MemoryWrite {}
 
 /// Represents a single process module with a name, base, and size
 #[derive(Debug)]
@@ -127,4 +138,3 @@ pub trait ProcessInfo {
 pub trait MouseMove {
     fn mouse_move(&self, dx: i32, dy: i32);
 }
-
