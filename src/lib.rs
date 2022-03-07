@@ -8,7 +8,7 @@ extern crate alloc;
 /// a struct that implements MemoryRead, MemoryWrite, and ModuleList
 pub trait ProcessAttach: Sized {
     /// The type of the resulting process after attaching
-    type ProcessType: MemoryRead + MemoryWrite + ModuleList;
+    type ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo;
 
     /// Attaches to a process of name process_name. If no process is found None is returned.
     /// If there is an error internally, this function should panic
