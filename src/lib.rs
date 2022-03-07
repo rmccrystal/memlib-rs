@@ -135,6 +135,7 @@ pub trait ModuleList {
 pub trait ProcessInfo {
     fn process_name(&self) -> String;
     fn peb_base_address(&self) -> u64;
+    fn pid(&self) -> u32;
 }
 
 /// Represents a type that allows for sending mouse inputs
