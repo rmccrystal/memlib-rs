@@ -6,13 +6,26 @@ extern crate alloc;
 
 /// Represents a type that can attach to a process and return
 /// a struct that implements MemoryRead, MemoryWrite, and ModuleList
-pub trait ProcessAttach {
+pub trait ProcessAttach: Sized {
     /// The type of the resulting process after attaching
     type ProcessType: MemoryRead + MemoryWrite + ModuleList;
 
     /// Attaches to a process of name process_name. If no process is found None is returned.
     /// If there is an error internally, this function should panic
     fn attach(&self, process_name: &str) -> Option<Self::ProcessType>;
+
+    /// Attaches to a process by a pid. If the pid does not exist, this will return None
+    fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType>;
+
+    /// Attaches to a process while consuming self
+    fn attach_into(self, process_name: &str) -> Option<Self::ProcessType> {
+        self.attach(process_name)
+    }
+
+    /// Attaches to a process with pid while consuming self
+    fn attach_into_pid(self, pid: u32) -> Option<Self::ProcessType> {
+        self.attach_pid(pid)
+    }
 }
 
 pub type MemoryRange = (u64, u64);
