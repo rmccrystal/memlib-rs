@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 dataview = "0.1.2"
+auto_impl = "0.5.0"

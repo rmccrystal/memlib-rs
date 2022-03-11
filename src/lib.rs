@@ -31,6 +31,7 @@ pub trait ProcessAttach: Sized {
 pub type MemoryRange = (u64, u64);
 
 /// Represents any type with a buffer that can be read from
+#[auto_impl::auto_impl(&, &mut, Box)]
 pub trait MemoryRead {
     /// Reads bytes from the process at the specified address into a buffer.
     /// Returns None if the address is not valid
@@ -83,6 +84,7 @@ impl<T: MemoryRead> MemoryReadExt for T {}
 impl MemoryReadExt for dyn MemoryRead {}
 
 /// Represents any type with a buffer that can be written to
+#[auto_impl::auto_impl(&, &mut, Box)]
 pub trait MemoryWrite {
     /// Writes bytes from the buffer into the process at the specified address.
     /// Returns None if the address is not valid
@@ -129,6 +131,7 @@ impl Module {
 }
 
 /// Represents a type that has access to a process's modules
+#[auto_impl::auto_impl(&, &mut, Box)]
 pub trait ModuleList {
     /// Returns a list of all modules. If the implementor can only
     /// provide a single module based on the name, this function should panic
@@ -145,6 +148,7 @@ pub trait ModuleList {
 }
 
 /// Represents a type that can retrieve the corresponding process's name and peb base address
+#[auto_impl::auto_impl(&, &mut, Box)]
 pub trait ProcessInfo {
     fn process_name(&self) -> String;
     fn peb_base_address(&self) -> u64;
@@ -152,6 +156,7 @@ pub trait ProcessInfo {
 }
 
 /// Represents a type that allows for sending mouse inputs
+#[auto_impl::auto_impl(&, &mut, Box)]
 pub trait MouseMove {
     fn mouse_move(&self, dx: i32, dy: i32);
 }
