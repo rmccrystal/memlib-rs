@@ -1,4 +1,12 @@
-use crate::{MemoryRead, MemoryWrite, MemoryWriteExt};
+use crate::{MemoryRead, MemoryWrite};
+
+/// Represents a type that can load and unload a kernel exploit
+pub trait LoadDriver {
+    type DriverType: KernelMemoryRead + KernelMemoryWrite + MapPhysical + TranslatePhysical;
+
+    fn load(&self) -> Option<Self::DriverType>;
+    fn unload(&self) -> Option<()>;
+}
 
 /// Implementing this trait marks that a MemoryRead implementation can read from kernel memory
 pub trait KernelMemoryRead: MemoryRead {}
@@ -95,6 +103,7 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryRea
         self.api.try_read_bytes_into(self.base as u64 + address, buffer)
     }
 }
+impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> KernelMemoryRead for MappedPhysicalMemory<'a, T> {}
 
 impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryWrite for MappedPhysicalMemory<'a, T> {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
@@ -104,6 +113,8 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryWri
         self.api.try_write_bytes(self.base as u64 + address, buffer)
     }
 }
+
+impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> KernelMemoryWrite for MappedPhysicalMemory<'a, T> {}
 
 impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> Drop for MappedPhysicalMemory<'a, T> {
     fn drop(&mut self) {
