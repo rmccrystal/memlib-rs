@@ -2,6 +2,9 @@ use core::mem::MaybeUninit;
 use std::{mem, slice};
 use dataview::Pod;
 
+#[cfg(feature = "kernel")]
+pub mod kernel;
+
 extern crate alloc;
 
 /// Represents a type that can attach to a process and return
