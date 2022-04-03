@@ -1,3 +1,5 @@
+#![feature(decl_macro)]
+
 use core::mem::MaybeUninit;
 use std::{mem, slice};
 use dataview::Pod;
@@ -5,7 +7,12 @@ use dataview::Pod;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 
+#[cfg(feature = "test")]
+#[macro_use]
+pub mod tests;
+
 extern crate alloc;
+extern crate core;
 
 /// Represents a type that can attach to a process and return
 /// a struct that implements MemoryRead, MemoryWrite, and ModuleList
@@ -31,7 +38,7 @@ pub trait ProcessAttach: Sized {
     }
 }
 
-pub type MemoryRange = (u64, u64);
+pub type MemoryRange = core::ops::Range<u64>;
 
 /// Represents any type with a buffer that can be read from
 #[auto_impl::auto_impl(&, &mut, Box)]
@@ -50,7 +57,7 @@ pub trait MemoryRead {
     /// Dumps a memory range into a Vector. If any part of the memory range is not
     /// valid, it will return None
     fn dump_memory(&self, range: MemoryRange) -> Option<Vec<u8>> {
-        self.try_read_bytes(range.0, (range.1 - range.0) as usize)
+        self.try_read_bytes(range.start, (range.end - range.start) as usize)
     }
 }
 
@@ -129,7 +136,7 @@ pub struct Module {
 impl Module {
     /// Returns the memory range of the entire module
     pub fn memory_range(&self) -> MemoryRange {
-        (self.base, self.base + self.size)
+        self.base..(self.base + self.size)
     }
 }
 
