@@ -59,6 +59,12 @@ pub trait MemoryRead {
     fn dump_memory(&self, range: MemoryRange) -> Option<Vec<u8>> {
         self.try_read_bytes(range.start, (range.end - range.start) as usize)
     }
+
+    /// Returns true if the specified address is valid. By default reads one byte at that location
+    /// and returns the success value
+    fn valid_address(&self, address: u64) -> bool {
+        self.try_read_bytes(address, 1).is_some()
+    }
 }
 
 /// Extension trait for supplying generic util methods for MemoryRead
