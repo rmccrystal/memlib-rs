@@ -50,7 +50,7 @@ pub trait MapPhysical {
 }
 
 pub trait TranslatePhysical {
-    fn physical_address(&self, virtual_address: usize) -> u64;
+    fn physical_address(&self, virtual_address: u64) -> Option<u64>;
 }
 
 /// A struct allowing the writing of read only memory by translating virtual
