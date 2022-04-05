@@ -1,8 +1,8 @@
 #![feature(decl_macro)]
 
 use core::mem::MaybeUninit;
-use std::{mem, slice};
 use dataview::Pod;
+use std::{mem, slice};
 
 #[cfg(feature = "kernel")]
 pub mod kernel;
@@ -85,7 +85,10 @@ pub trait MemoryReadExt: MemoryRead {
     unsafe fn try_read_unchecked<T>(&self, address: u64) -> Option<T> {
         let mut buffer: MaybeUninit<T> = mem::MaybeUninit::zeroed();
 
-        self.try_read_bytes_into(address, slice::from_raw_parts_mut(buffer.as_mut_ptr() as _, mem::size_of::<T>()))?;
+        self.try_read_bytes_into(
+            address,
+            slice::from_raw_parts_mut(buffer.as_mut_ptr() as _, mem::size_of::<T>()),
+        )?;
         Some(buffer.assume_init())
     }
 
@@ -117,7 +120,10 @@ pub trait MemoryWriteExt: MemoryWrite {
     /// Writes any type T to the process without the restriction of Pod
     #[allow(clippy::missing_safety_doc)]
     unsafe fn try_write_unchecked<T>(&self, address: u64, buffer: &T) -> Option<()> {
-        self.try_write_bytes(address, slice::from_raw_parts(buffer as *const T as _, mem::size_of::<T>()))
+        self.try_write_bytes(
+            address,
+            slice::from_raw_parts(buffer as *const T as _, mem::size_of::<T>()),
+        )
     }
 
     /// Writes bytes to the process at the specified address with the value of type T.
@@ -156,7 +162,9 @@ pub trait ModuleList {
     /// Returns a single module by name.
     /// If the module name does not exist, returns None
     fn get_module(&self, name: &str) -> Option<Module> {
-        self.get_module_list().into_iter().find(|m| m.name.to_lowercase() == name.to_lowercase())
+        self.get_module_list()
+            .into_iter()
+            .find(|m| m.name.to_lowercase() == name.to_lowercase())
     }
 
     /// Gets the main module from the process.
