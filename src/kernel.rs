@@ -74,7 +74,7 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryRea
     for MappedPhysicalMemory<'a, T>
 {
     fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
-        if address as usize + buffer.len() > self.size {
+        if address + buffer.len() as u64 > self.base + self.size as u64 {
             return None;
         }
         self.api
@@ -90,7 +90,7 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryWri
     for MappedPhysicalMemory<'a, T>
 {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
-        if address as usize + buffer.len() > self.size {
+        if address + buffer.len() as u64 > self.base + self.size as u64 {
             return None;
         }
         self.api.try_write_bytes(self.base as u64 + address, buffer)
