@@ -43,8 +43,7 @@ pub trait MapPhysical {
         }
     }
 
-    /// Crates a struct which implements KernelMemoryRead and KernelMemoryWrite that uses
-    /// physical memory to write to read only memory
+    /// Converts the specified virtual address and then calls `map_physical`.
     fn map_virtual(&self, virtual_address: u64, size: usize) -> Option<MappedPhysicalMemory<Self>>
     where
         Self: Sized + KernelMemoryRead + KernelMemoryWrite + TranslatePhysical,
