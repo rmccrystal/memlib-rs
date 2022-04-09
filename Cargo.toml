@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 kernel = []
+render = []
 test = ["env_logger", "log"]
 
 [dependencies]

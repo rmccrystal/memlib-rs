@@ -1,18 +1,23 @@
 #![feature(decl_macro)]
 
+use alloc::string::{FromUtf16Error, FromUtf8Error};
 use core::mem::MaybeUninit;
-use std::{mem, slice};
+use core::{mem, slice};
 use dataview::Pod;
 
 #[cfg(feature = "kernel")]
 pub mod kernel;
+
+#[cfg(feature = "render")]
+pub mod render;
+
+pub use render::DrawExt;
 
 #[cfg(feature = "test")]
 #[macro_use]
 pub mod tests;
 
 extern crate alloc;
-extern crate core;
 
 /// Represents a type that can attach to a process and return
 /// a struct that implements MemoryRead, MemoryWrite, and ModuleList
@@ -40,8 +45,10 @@ pub trait ProcessAttach: Sized {
 
 pub type MemoryRange = core::ops::Range<u64>;
 
+const MAX_STRING_SIZE: usize = 0x10000;
+
 /// Represents any type with a buffer that can be read from
-#[auto_impl::auto_impl(&, &mut, Box)]
+#[auto_impl::auto_impl(&, & mut, Box)]
 pub trait MemoryRead {
     /// Reads bytes from the process at the specified address into a buffer.
     /// Returns None if the address is not valid
@@ -64,6 +71,47 @@ pub trait MemoryRead {
     /// and returns the success value
     fn valid_address(&self, address: u64) -> bool {
         self.try_read_bytes(address, 1).is_some()
+    }
+
+    /// Reads a string at the specified location with char length of 1.
+    /// If the address is valid or there is no null terminator
+    /// in MAX_STRING_SIZE characters, it will return None
+    fn try_read_string(&self, address: u64) -> Option<Result<String, FromUtf8Error>> {
+        const CHUNK_SIZE: usize = 0x100;
+
+        let mut bytes = Vec::new();
+        let mut buf: [u8; CHUNK_SIZE] = unsafe { core::mem::zeroed() };
+        for i in (0..MAX_STRING_SIZE).into_iter().step_by(CHUNK_SIZE) {
+            self.try_read_bytes_into(address + i as u64, &mut buf)?;
+            if let Some(n) = buf.iter().position(|n| *n == 0u8) {
+                bytes.extend_from_slice(&buf[0..n]);
+                break;
+            } else {
+                bytes.extend_from_slice(&buf);
+            }
+        }
+
+        Some(String::from_utf8(bytes))
+    }
+
+    /// Reads a wide string at the specified location with char length of 1.
+    /// If the address is valid or there is no null terminator
+    /// in MAX_STRING_SIZE characters, it will return None
+    fn try_read_string_wide(&self, address: u64) -> Option<Result<String, FromUtf16Error>> {
+        const CHUNK_SIZE: usize = 0x100;
+
+        let mut bytes = Vec::new();
+        for i in (0..MAX_STRING_SIZE).into_iter().step_by(CHUNK_SIZE * 2) {
+            let buf = self.try_read::<[u16; CHUNK_SIZE]>(address + i as u64)?;
+            if let Some(n) = buf.iter().position(|n| *n == 0) {
+                bytes.extend_from_slice(&buf[0..n]);
+                break;
+            } else {
+                bytes.extend_from_slice(&buf);
+            }
+        }
+
+        Some(String::from_utf16(&bytes))
     }
 }
 
@@ -97,10 +145,11 @@ pub trait MemoryReadExt: MemoryRead {
 }
 
 impl<T: MemoryRead> MemoryReadExt for T {}
+
 impl MemoryReadExt for dyn MemoryRead {}
 
 /// Represents any type with a buffer that can be written to
-#[auto_impl::auto_impl(&, &mut, Box)]
+#[auto_impl::auto_impl(&, & mut, Box)]
 pub trait MemoryWrite {
     /// Writes bytes from the buffer into the process at the specified address.
     /// Returns None if the address is not valid
@@ -128,6 +177,7 @@ pub trait MemoryWriteExt: MemoryWrite {
 }
 
 impl<T: MemoryWrite> MemoryWriteExt for T {}
+
 impl MemoryWriteExt for dyn MemoryWrite {}
 
 /// Represents a single process module with a name, base, and size
@@ -147,7 +197,7 @@ impl Module {
 }
 
 /// Represents a type that has access to a process's modules
-#[auto_impl::auto_impl(&, &mut, Box)]
+#[auto_impl::auto_impl(&, & mut, Box)]
 pub trait ModuleList {
     /// Returns a list of all modules. If the implementor can only
     /// provide a single module based on the name, this function should panic
@@ -164,7 +214,7 @@ pub trait ModuleList {
 }
 
 /// Represents a type that can retrieve the corresponding process's name and peb base address
-#[auto_impl::auto_impl(&, &mut, Box)]
+#[auto_impl::auto_impl(&, & mut, Box)]
 pub trait ProcessInfo {
     fn process_name(&self) -> String;
     fn peb_base_address(&self) -> u64;
@@ -172,7 +222,7 @@ pub trait ProcessInfo {
 }
 
 /// Represents a type that allows for sending mouse inputs
-#[auto_impl::auto_impl(&, &mut, Box)]
+#[auto_impl::auto_impl(&, & mut, Box)]
 pub trait MouseMove {
     fn mouse_move(&self, dx: i32, dy: i32);
 }
