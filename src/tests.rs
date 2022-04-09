@@ -1,61 +1,59 @@
 pub macro generate_process_attach_tests($make_attach:expr) {
+    use $crate::tests::process_attach_tests::ProcessAttachTests;
 
-use $crate::tests::process_attach_tests::ProcessAttachTests;
+    fn get_tester() -> ProcessAttachTests<impl $crate::ProcessAttach> {
+        let attach = $make_attach();
+        ProcessAttachTests::new(attach)
+    }
 
-fn get_tester() -> ProcessAttachTests<impl $crate::ProcessAttach> {
-    let attach = $make_attach();
-    ProcessAttachTests::new(attach)
-}
+    #[test]
+    fn test_attach() {
+        get_tester().test_attach();
+    }
 
-#[test]
-fn test_attach() {
-    get_tester().test_attach();
-}
+    #[test]
+    fn test_main_module() {
+        get_tester().test_main_module();
+    }
 
-#[test]
-fn test_main_module() {
-    get_tester().test_main_module();
-}
+    #[test]
+    fn test_module_list() {
+        get_tester().test_module_list();
+    }
 
-#[test]
-fn test_module_list() {
-    get_tester().test_module_list();
-}
+    #[test]
+    fn test_read() {
+        get_tester().test_read();
+    }
 
-#[test]
-fn test_read() {
-    get_tester().test_read();
-}
+    #[test]
+    fn test_dump_module() {
+        get_tester().test_dump_module();
+    }
 
-#[test]
-fn test_dump_module() {
-    get_tester().test_dump_module();
-}
+    #[test]
+    fn test_module_coverage() {
+        get_tester().test_module_coverage();
+    }
 
-#[test]
-fn test_module_coverage() {
-    get_tester().test_module_coverage();
-}
+    /*
+    #[test]
+    fn test_write() {
+        get_tester().test_write();
+    }
+     */
 
-/*
-#[test]
-fn test_write() {
-    get_tester().test_write();
-}
- */
-
-#[test]
-fn test_process_info() {
-    get_tester().test_process_info();
-}
-
+    #[test]
+    fn test_process_info() {
+        get_tester().test_process_info();
+    }
 }
 
 pub mod process_attach_tests {
+    use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessInfo};
+    use log::LevelFilter;
     use std::process;
     use std::time::Duration;
-    use log::LevelFilter;
-    use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessInfo};
 
     struct TestProcess {
         proc: process::Child,
@@ -66,7 +64,7 @@ pub mod process_attach_tests {
     impl TestProcess {
         pub fn new() -> Self {
             Self {
-                proc: process::Command::new(TEST_PROCESS).spawn().unwrap()
+                proc: process::Command::new(TEST_PROCESS).spawn().unwrap(),
             }
         }
 
@@ -82,7 +80,10 @@ pub mod process_attach_tests {
     }
 
     fn init_tests() {
-        let _ = env_logger::builder().is_test(true).filter_level(LevelFilter::Debug).try_init();
+        let _ = env_logger::builder()
+            .is_test(true)
+            .filter_level(LevelFilter::Debug)
+            .try_init();
     }
 
     pub struct ProcessAttachTests<T: ProcessAttach> {
@@ -93,7 +94,10 @@ pub mod process_attach_tests {
     impl<T: ProcessAttach> ProcessAttachTests<T> {
         pub fn new(api: T) -> Self {
             init_tests();
-            Self { api, proc: TestProcess::new() }
+            Self {
+                api,
+                proc: TestProcess::new(),
+            }
         }
 
         fn attach(&self) -> T::ProcessType {
@@ -122,7 +126,9 @@ pub mod process_attach_tests {
         pub fn test_read(&self) {
             let handle = self.attach();
             let main_module = handle.get_main_module();
-            let header = handle.try_read_bytes(main_module.base, 2).expect("Could not read bytes from the process");
+            let header = handle
+                .try_read_bytes(main_module.base, 2)
+                .expect("Could not read bytes from the process");
             assert_eq!(header[0], 0x4D);
             assert_eq!(header[1], 0x5A);
         }
@@ -131,7 +137,9 @@ pub mod process_attach_tests {
             let handle = self.attach();
             let main_module = handle.get_main_module();
             let range = main_module.memory_range();
-            let _ = handle.dump_memory(range).expect("Could not dump memory range");
+            let _ = handle
+                .dump_memory(range)
+                .expect("Could not dump memory range");
         }
 
         pub fn test_module_coverage(&self) {
@@ -150,7 +158,13 @@ pub mod process_attach_tests {
                 }
             }
 
-            eprintln!("{}/{} ({:.1}%) chunks of {:#X} could be read", good, total, (good as f32 / total as f32) * 100.0, CHUNK_SIZE);
+            eprintln!(
+                "{}/{} ({:.1}%) chunks of {:#X} could be read",
+                good,
+                total,
+                (good as f32 / total as f32) * 100.0,
+                CHUNK_SIZE
+            );
             assert_eq!(good, total);
         }
 
