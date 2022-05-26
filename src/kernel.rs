@@ -59,7 +59,30 @@ pub trait PhysicalMemoryWrite {
         where Self: Sized + PhysicalMemoryRead {
         PhysicalMemory::new(self)
     }
+
+    /// A utility type that transforms Self into a type that writes virtual memory using physical memory
+    fn virtual_writer(&self) -> VirtualMemoryWriter<Self>
+        where Self: Sized + TranslatePhysical {
+        VirtualMemoryWriter::new(self)
+    }
 }
+
+pub struct VirtualMemoryWriter<'a, T: PhysicalMemoryWrite + TranslatePhysical>(&'a T);
+
+impl<'a, T: PhysicalMemoryWrite + TranslatePhysical> VirtualMemoryWriter<'a, T> {
+    pub fn new(api: &'a T) -> Self {
+        Self(api)
+    }
+}
+
+impl<'a, T: PhysicalMemoryWrite + TranslatePhysical> MemoryWrite for VirtualMemoryWriter<'a, T> {
+    fn try_write_bytes(&self, address: Address, buffer: &[u8]) -> Option<()> {
+        let physical_address = self.0.physical_address(address)?;
+        self.0.try_write_bytes_physical(physical_address, buffer)
+    }
+}
+
+impl<'a, T: PhysicalMemoryWrite + TranslatePhysical> KernelMemoryWrite for VirtualMemoryWriter<'a, T> {}
 
 pub struct PhysicalMemoryWriter<'a, T: PhysicalMemoryWrite>(&'a T);
 
