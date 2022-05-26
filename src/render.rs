@@ -211,3 +211,20 @@ impl<'draw, T: Draw> Circle<'draw, T> {
         }
     }
 }
+
+pub struct NullFrame;
+
+#[allow(unused_variables)]
+impl Draw for NullFrame {
+    fn draw_text(&mut self, origin: Point, text: &str, color: Color, options: TextOptions) {}
+
+    fn draw_line(&mut self, p1: Point, p2: Point, color: Color, options: LineOptions) {}
+
+    fn draw_rect(&mut self, p1: Point, p2: Point, color: Color, options: RectOptions) {}
+
+    fn draw_rect_filled(&mut self, p1: Point, p2: Point, color: Color, options: RectOptions) {}
+
+    fn draw_circle(&mut self, origin: Point, radius: f32, color: Color, options: CircleOptions) {}
+
+    fn draw_circle_filled(&mut self, origin: Point, radius: f32, color: Color, options: CircleOptions) {}
+}
