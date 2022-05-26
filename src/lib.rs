@@ -2,7 +2,6 @@
 
 use alloc::string::{FromUtf16Error, FromUtf8Error};
 use core::mem::MaybeUninit;
-use dataview::Pod;
 use std::{mem, slice};
 
 pub use dataview::Pod;
