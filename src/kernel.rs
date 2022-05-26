@@ -1,4 +1,4 @@
-use crate::{Address, MemoryRead, MemoryWrite};
+use crate::{MemoryRead, MemoryWrite};
 
 /// Represents a type that can load and unload a kernel exploit
 pub trait LoadDriver {
@@ -36,7 +36,7 @@ impl<'a, T: PhysicalMemoryRead> PhysicalMemoryReader<'a, T> {
 }
 
 impl<'a, T: PhysicalMemoryRead> MemoryRead for PhysicalMemoryReader<'a, T> {
-    fn try_read_bytes_into(&self, address: Address, buffer: &mut [u8]) -> Option<()> {
+    fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
         self.0.try_read_bytes_physical_into(address, buffer)
     }
 }
@@ -76,7 +76,7 @@ impl<'a, T: PhysicalMemoryWrite + TranslatePhysical> VirtualMemoryWriter<'a, T> 
 }
 
 impl<'a, T: PhysicalMemoryWrite + TranslatePhysical> MemoryWrite for VirtualMemoryWriter<'a, T> {
-    fn try_write_bytes(&self, address: Address, buffer: &[u8]) -> Option<()> {
+    fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         let physical_address = self.0.physical_address(address)?;
         self.0.try_write_bytes_physical(physical_address, buffer)
     }
@@ -93,7 +93,7 @@ impl<'a, T: PhysicalMemoryWrite> PhysicalMemoryWriter<'a, T> {
 }
 
 impl<'a, T: PhysicalMemoryWrite> MemoryWrite for PhysicalMemoryWriter<'a, T> {
-    fn try_write_bytes(&self, address: Address, buffer: &[u8]) -> Option<()> {
+    fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         self.0.try_write_bytes_physical(address, buffer)
     }
 }
@@ -107,13 +107,13 @@ impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite> PhysicalMemory<'a, T> {
 }
 
 impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite> MemoryRead for PhysicalMemory<'a, T> {
-    fn try_read_bytes_into(&self, address: Address, buffer: &mut [u8]) -> Option<()> {
+    fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
         self.0.try_read_bytes_physical_into(address, buffer)
     }
 }
 
 impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite> MemoryWrite for PhysicalMemory<'a, T> {
-    fn try_write_bytes(&self, address: Address, buffer: &[u8]) -> Option<()> {
+    fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         self.0.try_write_bytes_physical(address, buffer)
     }
 }
