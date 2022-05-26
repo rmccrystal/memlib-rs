@@ -1,4 +1,4 @@
-use crate::{MemoryRead, MemoryWrite};
+use crate::{Address, MemoryRead, MemoryWrite};
 
 /// Represents a type that can load and unload a kernel exploit
 pub trait LoadDriver {
@@ -13,6 +13,87 @@ pub trait KernelMemoryRead: MemoryRead {}
 
 /// Implementing this trait marks that a MemoryWrite implementation can write to kernel memory
 pub trait KernelMemoryWrite: MemoryWrite {}
+
+/// A trait that represents a type that can read physical memory
+pub trait PhysicalMemoryRead {
+    /// Reads bytes at a physical address into the buffer
+    fn try_read_bytes_physical_into(&self, physical_address: u64, buffer: &mut [u8]) -> Option<()>;
+
+    /// A utility type that transforms Self into a type that implements memlib::MemoryRead
+    /// so memlib's utility functions can be used
+    fn physical_reader(&self) -> PhysicalMemoryReader<Self>
+        where Self: Sized {
+        PhysicalMemoryReader::new(self)
+    }
+}
+
+pub struct PhysicalMemoryReader<'a, T: PhysicalMemoryRead>(&'a T);
+
+impl<'a, T: PhysicalMemoryRead> PhysicalMemoryReader<'a, T> {
+    pub fn new(api: &'a T) -> Self {
+        Self(api)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead> MemoryRead for PhysicalMemoryReader<'a, T> {
+    fn try_read_bytes_into(&self, address: Address, buffer: &mut [u8]) -> Option<()> {
+        self.0.try_read_bytes_physical_into(address, buffer)
+    }
+}
+
+/// A trait that represents a type that can write physical memory
+pub trait PhysicalMemoryWrite {
+    /// Writes bytes at a physical address from the buffer
+    fn try_write_bytes_physical(&self, physical_address: u64, buffer: &[u8]) -> Option<()>;
+
+    /// A utility type that transforms Self into a type that implements memlib::MemoryWrite
+    /// so memlib's utility functions can be used
+    fn physical_writer(&self) -> PhysicalMemoryWriter<Self>
+        where Self: Sized {
+        PhysicalMemoryWriter::new(self)
+    }
+
+    /// A utility type that transforms Self into a type that implements memlib::MemoryWrite + memlib::MemoryRead
+    /// so memlib's utility functions can be used
+    fn physical(&self) -> PhysicalMemory<Self>
+        where Self: Sized + PhysicalMemoryRead {
+        PhysicalMemory::new(self)
+    }
+}
+
+pub struct PhysicalMemoryWriter<'a, T: PhysicalMemoryWrite>(&'a T);
+
+impl<'a, T: PhysicalMemoryWrite> PhysicalMemoryWriter<'a, T> {
+    pub fn new(api: &'a T) -> Self {
+        Self(api)
+    }
+}
+
+impl<'a, T: PhysicalMemoryWrite> MemoryWrite for PhysicalMemoryWriter<'a, T> {
+    fn try_write_bytes(&self, address: Address, buffer: &[u8]) -> Option<()> {
+        self.0.try_write_bytes_physical(address, buffer)
+    }
+}
+
+pub struct PhysicalMemory<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite>(&'a T);
+
+impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite> PhysicalMemory<'a, T> {
+    pub fn new(api: &'a T) -> Self {
+        Self(api)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite> MemoryRead for PhysicalMemory<'a, T> {
+    fn try_read_bytes_into(&self, address: Address, buffer: &mut [u8]) -> Option<()> {
+        self.0.try_read_bytes_physical_into(address, buffer)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite> MemoryWrite for PhysicalMemory<'a, T> {
+    fn try_write_bytes(&self, address: Address, buffer: &[u8]) -> Option<()> {
+        self.0.try_write_bytes_physical(address, buffer)
+    }
+}
 
 /// A trait for types that can call MmMapIoSpace, ZwMapViewOfSection, or any other way of mapping physical memory
 /// to a virtual buffer that can be used by KernelMemoryRead and KernelMemoryWrite. Note that the virtual memory
@@ -34,8 +115,8 @@ pub trait MapPhysical {
     /// reading and memory of the mapped buffer (note that the addresses start at zero when reading)
     /// This struct will automatically unmap its memory when it is dropped.
     fn map_physical(&self, physical_address: u64, size: usize) -> Option<MappedPhysicalMemory<Self>>
-    where
-        Self: Sized + KernelMemoryRead + KernelMemoryWrite,
+        where
+            Self: Sized + KernelMemoryRead + KernelMemoryWrite,
     {
         unsafe {
             self.map_io_space(physical_address, size)
@@ -45,11 +126,33 @@ pub trait MapPhysical {
 
     /// Converts the specified virtual address and then calls `map_physical`.
     fn map_virtual(&self, virtual_address: u64, size: usize) -> Option<MappedPhysicalMemory<Self>>
-    where
-        Self: Sized + KernelMemoryRead + KernelMemoryWrite + TranslatePhysical,
+        where
+            Self: Sized + KernelMemoryRead + KernelMemoryWrite + TranslatePhysical,
     {
         let phys = self.physical_address(virtual_address)?;
         self.map_physical(phys, size)
+    }
+}
+
+impl<T: MapPhysical + KernelMemoryRead> PhysicalMemoryRead for T {
+    fn try_read_bytes_physical_into(&self, physical_address: u64, buffer: &mut [u8]) -> Option<()> {
+        unsafe {
+            let map = self.map_io_space(physical_address, buffer.len())?;
+            self.try_read_bytes_into(map, buffer)?;
+            self.unmap_io_space(map, buffer.len())?;
+            Some(())
+        }
+    }
+}
+
+impl<T: MapPhysical + KernelMemoryWrite> PhysicalMemoryWrite for T {
+    fn try_write_bytes_physical(&self, physical_address: u64, buffer: &[u8]) -> Option<()> {
+        unsafe {
+            let map = self.map_io_space(physical_address, buffer.len())?;
+            self.try_write_bytes(map, buffer)?;
+            self.unmap_io_space(map, buffer.len())?;
+            Some(())
+        }
     }
 }
 
@@ -71,7 +174,7 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> MappedPhysicalMe
 }
 
 impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryRead
-    for MappedPhysicalMemory<'a, T>
+for MappedPhysicalMemory<'a, T>
 {
     fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
         if address + buffer.len() as u64 > self.base + self.size as u64 {
@@ -81,13 +184,9 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryRea
             .try_read_bytes_into(self.base as u64 + address, buffer)
     }
 }
-impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> KernelMemoryRead
-    for MappedPhysicalMemory<'a, T>
-{
-}
 
 impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryWrite
-    for MappedPhysicalMemory<'a, T>
+for MappedPhysicalMemory<'a, T>
 {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         if address + buffer.len() as u64 > self.base + self.size as u64 {
@@ -97,13 +196,8 @@ impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> crate::MemoryWri
     }
 }
 
-impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> KernelMemoryWrite
-    for MappedPhysicalMemory<'a, T>
-{
-}
-
 impl<'a, T: MapPhysical + KernelMemoryRead + KernelMemoryWrite> Drop
-    for MappedPhysicalMemory<'a, T>
+for MappedPhysicalMemory<'a, T>
 {
     fn drop(&mut self) {
         unsafe { self.api.unmap_io_space(self.base, self.size).unwrap() }
