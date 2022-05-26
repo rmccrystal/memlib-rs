@@ -5,12 +5,15 @@ use core::mem::MaybeUninit;
 use dataview::Pod;
 use std::{mem, slice};
 
+pub use dataview::Pod;
+
 #[cfg(feature = "kernel")]
 pub mod kernel;
 
 #[cfg(feature = "render")]
 pub mod render;
 
+#[cfg(feature = "render")]
 pub use render::DrawExt;
 
 #[cfg(feature = "test")]
