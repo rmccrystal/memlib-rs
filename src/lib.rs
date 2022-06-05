@@ -1,4 +1,6 @@
 #![feature(decl_macro)]
+#![feature(associated_type_defaults)]
+#![feature(associated_type_bounds)]
 
 use alloc::string::{FromUtf16Error, FromUtf8Error};
 use core::mem::MaybeUninit;
@@ -19,31 +21,14 @@ pub use render::DrawExt;
 #[macro_use]
 pub mod tests;
 
+mod memory_protection;
+mod pid_util;
+
+pub use pid_util::*;
+
+pub use memory_protection::MemoryProtection;
+
 extern crate alloc;
-
-/// Represents a type that can attach to a process and return
-/// a struct that implements MemoryRead, MemoryWrite, and ModuleList
-pub trait ProcessAttach: Sized {
-    /// The type of the resulting process after attaching
-    type ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo;
-
-    /// Attaches to a process of name process_name. If no process is found None is returned.
-    /// If there is an error internally, this function should panic
-    fn attach(&self, process_name: &str) -> Option<Self::ProcessType>;
-
-    /// Attaches to a process by a pid. If the pid does not exist, this will return None
-    fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType>;
-
-    /// Attaches to a process while consuming self
-    fn attach_into(self, process_name: &str) -> Option<Self::ProcessType> {
-        self.attach(process_name)
-    }
-
-    /// Attaches to a process with pid while consuming self
-    fn attach_into_pid(self, pid: u32) -> Option<Self::ProcessType> {
-        self.attach_pid(pid)
-    }
-}
 
 pub type MemoryRange = core::ops::Range<u64>;
 
@@ -221,6 +206,36 @@ pub trait ModuleList {
 
     /// Gets the main module from the process.
     fn get_main_module(&self) -> Module;
+}
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum MemoryProtectError {
+    InvalidMemoryRange(MemoryRange),
+    NtStatus(u32),
+    Message(String),
+}
+
+pub trait MemoryProtect {
+    /// Sets the protection of the memory range to the specified protection.
+    /// Returns the old memory protection or an error
+    fn set_protection(&self, range: MemoryRange, protection: MemoryProtection) -> Result<MemoryProtection, MemoryProtectError>;
+}
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum MemoryAllocateError {
+    NtStatus(u32),
+    Message(String),
+}
+
+pub trait MemoryAllocate {
+    /// Allocates size bytes of memory in the process with the specified protection.
+    /// Returns the allocated memory or an error.
+    fn allocate(&self, size: u64, protection: MemoryProtection) -> Result<u64, MemoryAllocateError>;
+
+    /// Frees allocated memory at the specified address.
+    fn free(&self, base: u64) -> Result<(), MemoryAllocateError>;
 }
 
 /// Represents a type that can retrieve the corresponding process's name and peb base address

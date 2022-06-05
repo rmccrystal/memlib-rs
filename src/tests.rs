@@ -1,5 +1,5 @@
 pub macro generate_process_attach_tests($make_attach:expr) {
-    use $crate::tests::process_attach_tests::ProcessAttachTests;
+use $crate::tests::process_attach_tests::ProcessAttachTests;
 
     fn get_tester() -> ProcessAttachTests<impl $crate::ProcessAttach> {
         let attach = $make_attach();
@@ -50,7 +50,7 @@ pub macro generate_process_attach_tests($make_attach:expr) {
 }
 
 pub mod process_attach_tests {
-    use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessInfo};
+    use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessAttachInto, ProcessInfo};
     use log::LevelFilter;
     use std::process;
     use std::time::Duration;
@@ -86,12 +86,12 @@ pub mod process_attach_tests {
             .try_init();
     }
 
-    pub struct ProcessAttachTests<T: ProcessAttach> {
+    pub struct ProcessAttachTests<T: ProcessAttach<ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo>> {
         api: T,
         proc: TestProcess,
     }
 
-    impl<T: ProcessAttach> ProcessAttachTests<T> {
+    impl<T: ProcessAttach<ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo>> ProcessAttachTests<T> {
         pub fn new(api: T) -> Self {
             init_tests();
             Self {
