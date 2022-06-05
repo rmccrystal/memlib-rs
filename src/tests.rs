@@ -1,7 +1,7 @@
 pub macro generate_process_attach_tests($make_attach:expr) {
 use $crate::tests::process_attach_tests::ProcessAttachTests;
 
-    fn get_tester() -> ProcessAttachTests<impl $crate::ProcessAttach> {
+    fn get_tester() -> ProcessAttachTests<impl $crate::ProcessAttach<ProcessType: $crate::MemoryRead + $crate::MemoryWrite + $crate::ModuleList + $crate::ProcessInfo>> {
         let attach = $make_attach();
         ProcessAttachTests::new(attach)
     }
