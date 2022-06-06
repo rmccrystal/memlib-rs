@@ -175,7 +175,7 @@ impl<T: MemoryWrite> MemoryWriteExt for T {}
 impl MemoryWriteExt for dyn MemoryWrite {}
 
 /// Represents a single process module with a name, base, and size
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Module {
     pub name: String,
