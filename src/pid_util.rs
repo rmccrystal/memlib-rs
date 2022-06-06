@@ -4,17 +4,17 @@ use crate::*;
 /// a struct that implements MemoryRead, MemoryWrite, and ModuleList
 pub trait ProcessAttach: Sized {
     /// The type of the resulting process after attaching
-    type ProcessType;
+    type ProcessType<'a> where Self: 'a;
 
     /// Attaches to a process of name process_name. If no process is found None is returned.
     /// If there is an error internally, this function should panic
-    fn attach(&self, process_name: &str) -> Option<Self::ProcessType>;
+    fn attach(&self, process_name: &str) -> Option<Self::ProcessType<'_>>;
 
     /// Attaches to a process by a pid. If the pid does not exist, this will return None
-    fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType>;
+    fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType<'_>>;
 
     /// Attaches to the current process
-    fn attach_current(&self) -> Self::ProcessType;
+    fn attach_current(&self) -> Self::ProcessType<'_>;
 }
 
 /// Represents a type that can attach to a process and return
@@ -37,19 +37,19 @@ pub trait ProcessAttachInto: Sized {
 impl<T, P> ProcessAttach for T
     where T: Clone + GetContext<Context=P>,
 {
-    type ProcessType = AttachedProcess<Self, P>;
+    type ProcessType<'a> = AttachedProcess<'a, Self, P> where Self: 'a;
 
-    fn attach(&self, process_name: &str) -> Option<Self::ProcessType> {
+    fn attach(&self, process_name: &str) -> Option<Self::ProcessType<'_>> {
         self.get_context_from_name(process_name)
             .map(|ctx| AttachedProcess::new(self.clone(), ctx))
     }
 
-    fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType> {
+    fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType<'_>> {
         self.get_context_from_pid(pid)
             .map(|ctx| AttachedProcess::new(self.clone(), ctx))
     }
 
-    fn attach_current(&self) -> Self::ProcessType {
+    fn attach_current(&self) -> Self::ProcessType<'_> {
         let ctx = self.get_current_context();
         AttachedProcess::new(self.clone(), ctx)
     }
@@ -57,9 +57,9 @@ impl<T, P> ProcessAttach for T
 
 impl<T, P> ProcessAttachInto for T
     where
-        T: GetContext<Context=P>,
+        T: GetContext<Context=P> + 'static,
 {
-    type ProcessType = AttachedProcess<Self, P>;
+    type ProcessType = AttachedProcess<'static, Self, P>;
 
     fn attach_into(self, process_name: &str) -> Option<Self::ProcessType> {
         self.get_context_from_name(process_name)
@@ -86,14 +86,42 @@ pub trait GetContext {
     fn get_current_context(&self) -> Self::Context;
 }
 
-pub struct AttachedProcess<T, P> {
-    pub api: T,
+pub enum MaybeOwned<'a, T> {
+    Borrowed(&'a T),
+    Owned(T)
+}
+
+impl<'a, T> From<&'a T> for MaybeOwned<'a, T> {
+    fn from(n: &'a T) -> Self {
+        Self::Borrowed(n)
+    }
+}
+
+impl<'a, T> From<T> for MaybeOwned<'a, T> {
+    fn from(n: T) -> Self {
+        Self::Owned(n)
+    }
+}
+
+pub struct AttachedProcess<'a, T, P> {
+    pub api: MaybeOwned<'a, T>,
     pub context: P,
 }
 
-impl<T, P> AttachedProcess<T, P> {
-    pub fn new(api: T, context: P) -> Self {
-        Self { api, context }
+impl<'a, T, P> AttachedProcess<'a, T, P> {
+    pub fn new(api: impl Into<MaybeOwned<'a, T>>, context: P) -> Self {
+        Self { api: api.into(), context }
+    }
+
+    pub fn api(&self) -> &T {
+        match &self.api {
+            MaybeOwned::Borrowed(api) => api,
+            MaybeOwned::Owned(api) => api
+        }
+    }
+
+    pub fn context(&self) -> &P {
+        &self.context
     }
 }
 
@@ -104,12 +132,12 @@ pub trait MemoryReadPid: GetContext {
     fn try_read_bytes_into_pid(&self, ctx: &Self::Context, address: u64, buffer: &mut [u8]) -> Option<()>;
 }
 
-impl<T, P> MemoryRead for AttachedProcess<T, P>
+impl<T, P> MemoryRead for AttachedProcess<'_, T, P>
     where
         T: MemoryReadPid<Context=P>
 {
     fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
-        self.api.try_read_bytes_into_pid(&self.context, address, buffer)
+        self.api().try_read_bytes_into_pid(&self.context(), address, buffer)
     }
 }
 
@@ -120,12 +148,12 @@ pub trait MemoryWritePid: GetContext {
     fn try_write_bytes_pid(&self, ctx: &Self::Context, address: u64, buffer: &[u8]) -> Option<()>;
 }
 
-impl<T, P> MemoryWrite for AttachedProcess<T, P>
+impl<T, P> MemoryWrite for AttachedProcess<'_, T, P>
     where
         T: MemoryWritePid<Context=P>,
 {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
-        self.api.try_write_bytes_pid(&self.context, address, buffer)
+        self.api().try_write_bytes_pid(&self.context(), address, buffer)
     }
 }
 
@@ -148,20 +176,20 @@ pub trait ModuleListPid: GetContext {
     fn get_main_module(&self, pid: &Self::Context) -> Module;
 }
 
-impl<T, P> ModuleList for AttachedProcess<T, P>
+impl<T, P> ModuleList for AttachedProcess<'_, T, P>
     where
         T: ModuleListPid<Context=P>,
 {
     fn get_module_list(&self) -> Vec<Module> {
-        self.api.get_module_list(&self.context)
+        self.api().get_module_list(&self.context())
     }
 
     fn get_module(&self, name: &str) -> Option<Module> {
-        self.api.get_module(&self.context, name)
+        self.api().get_module(&self.context(), name)
     }
 
     fn get_main_module(&self) -> Module {
-        self.api.get_main_module(&self.context)
+        self.api().get_main_module(&self.context())
     }
 }
 
@@ -173,19 +201,19 @@ pub trait ProcessInfoPid: GetContext {
     fn pid(&self, pid: &Self::Context) -> u32;
 }
 
-impl<T, P> ProcessInfo for AttachedProcess<T, P>
+impl<T, P> ProcessInfo for AttachedProcess<'_, T, P>
     where
         T: ProcessInfoPid<Context=P>,
 {
     fn process_name(&self) -> String {
-        self.api.process_name(&self.context)
+        self.api().process_name(&self.context())
     }
 
     fn peb_base_address(&self) -> u64 {
-        self.api.peb_base_address(&self.context)
+        self.api().peb_base_address(&self.context())
     }
 
     fn pid(&self) -> u32 {
-        self.api.pid(&self.context)
+        self.api().pid(&self.context())
     }
 }

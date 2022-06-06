@@ -1,6 +1,7 @@
 #![feature(decl_macro)]
 #![feature(associated_type_defaults)]
 #![feature(associated_type_bounds)]
+#![feature(generic_associated_types)]
 
 use alloc::string::{FromUtf16Error, FromUtf8Error};
 use core::mem::MaybeUninit;
