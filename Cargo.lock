@@ -355,7 +355,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
- "memlib 0.1.0 (git+https://github.com/rmccrystal/memlib-rs)",
+ "memlib 0.1.0",
  "pelite",
  "windows",
  "winutil",
@@ -450,6 +450,7 @@ checksum = "a29bd61f32889c822c99a8fdf2e93378bd2fae4d7efd2693fab09fcaaf7eff4b"
 [[package]]
 name = "winutil"
 version = "0.1.0"
+source = "git+https://github.com/rmccrystal/winutil#3c0cda84dc6527e5e2a1952cb8b170a6d5c3c509"
 dependencies = [
  "anyhow",
  "enigo",

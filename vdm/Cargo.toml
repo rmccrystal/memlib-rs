@@ -6,10 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-memlib = { git = "https://github.com/rmccrystal/memlib-rs", features = ["kernel"] }
-#memlib = { path = "../../memlib-rs", features = ["kernel"] }
+memlib = { path = "../memlib", features = ["kernel"] }
 
-winutil = { path = "../../winutil" }
+winutil = { git = "https://github.com/rmccrystal/winutil" }
 log = "0.4.17"
 anyhow = "1.0.57"
 pelite = "0.9.0"
