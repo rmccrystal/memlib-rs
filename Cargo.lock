@@ -202,7 +202,7 @@ dependencies = [
 [[package]]
 name = "memlib"
 version = "0.1.0"
-source = "git+https://github.com/rmccrystal/memlib-rs#d17235557d74024847884f9bede0936b3bd4c196"
+source = "git+https://github.com/rmccrystal/memlib-rs#e1a7e283b0cccac255af991a9c3d36536d113ec2"
 dependencies = [
  "auto_impl",
  "bitflags",
