@@ -100,7 +100,7 @@ pub mod process_attach_tests {
         }
 
         fn attach(&self) -> T::ProcessType {
-            self.api.attach_pid(self.proc.proc.id()).unwrap()
+            self.api.clone().attach_into_pid(self.proc.proc.id()).unwrap()
         }
 
         pub fn test_attach(&self) {
