@@ -34,10 +34,10 @@ pub trait ProcessAttachInto: Sized {
     fn attach_into_current(self) -> Self::ProcessType;
 }
 
-impl<T, P> ProcessAttach for T
-    where T: GetContext<Context=P> + 'static
+impl<T> ProcessAttach for T
+    where T: GetContext + 'static
 {
-    type ProcessType<'a> = AttachedProcess<'a, Self, P> where Self: 'a;
+    type ProcessType<'a> = AttachedProcess<'a, Self> where Self: 'a;
 
     fn attach(&self, process_name: &str) -> Option<Self::ProcessType<'_>> {
         self.get_context_from_name(process_name)
@@ -55,11 +55,11 @@ impl<T, P> ProcessAttach for T
     }
 }
 
-impl<T, P> ProcessAttachInto for T
+impl<T> ProcessAttachInto for T
     where
-        T: GetContext<Context=P> + 'static,
+        T: GetContext + 'static,
 {
-    type ProcessType = AttachedProcess<'static, Self, P>;
+    type ProcessType = AttachedProcess<'static, Self>;
 
     fn attach_into(self, process_name: &str) -> Option<Self::ProcessType> {
         self.get_context_from_name(process_name)

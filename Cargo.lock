@@ -202,7 +202,7 @@ dependencies = [
 [[package]]
 name = "memlib"
 version = "0.1.0"
-source = "git+https://github.com/rmccrystal/memlib-rs#23155c07dbbe80f8a546d118decc473d95f2486e"
+source = "git+https://github.com/rmccrystal/memlib-rs#d17235557d74024847884f9bede0936b3bd4c196"
 dependencies = [
  "auto_impl",
  "bitflags",
@@ -450,7 +450,7 @@ checksum = "a29bd61f32889c822c99a8fdf2e93378bd2fae4d7efd2693fab09fcaaf7eff4b"
 [[package]]
 name = "winutil"
 version = "0.1.0"
-source = "git+https://github.com/rmccrystal/winutil#3c0cda84dc6527e5e2a1952cb8b170a6d5c3c509"
+source = "git+https://github.com/rmccrystal/winutil#f28033e678f4f36a68022ea74e3a32dc86718de1"
 dependencies = [
  "anyhow",
  "enigo",
