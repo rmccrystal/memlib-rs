@@ -63,17 +63,17 @@ impl<T, P> ProcessAttachInto for T
 
     fn attach_into(self, process_name: &str) -> Option<Self::ProcessType> {
         self.get_context_from_name(process_name)
-            .map(|ctx| AttachedProcess::new(self, ctx))
+            .map(|ctx| AttachedProcess::new_owned(self, ctx))
     }
 
     fn attach_into_pid(self, pid: u32) -> Option<Self::ProcessType> {
         self.get_context_from_pid(pid)
-            .map(|ctx| AttachedProcess::new(self, ctx))
+            .map(|ctx| AttachedProcess::new_owned(self, ctx))
     }
 
     fn attach_into_current(self) -> Self::ProcessType {
         let ctx = self.get_current_context();
-        AttachedProcess::new(self, ctx)
+        AttachedProcess::new_owned(self, ctx)
     }
 }
 
@@ -130,8 +130,12 @@ pub struct AttachedProcess<'a, T, P> {
 }
 
 impl<'a, T, P> AttachedProcess<'a, T, P> {
-    pub fn new(api: impl Into<MaybeOwned<'a, T>>, context: P) -> Self {
-        Self { api: api.into(), context }
+    pub fn new_owned(api: T, context: P) -> Self {
+        Self { api: MaybeOwned::Owned(api), context }
+    }
+
+    pub fn new(api: &'a T, context: P) -> Self {
+        Self { api: MaybeOwned::Borrowed(api), context }
     }
 
     pub fn api(&self) -> &T {
