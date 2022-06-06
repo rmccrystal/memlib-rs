@@ -49,7 +49,6 @@ use $crate::tests::process_attach_tests::ProcessAttachTests;
     }
 }
 
-#[cfg(test)]
 pub mod process_attach_tests {
     use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessAttachInto, ProcessInfo};
     use log::LevelFilter;
