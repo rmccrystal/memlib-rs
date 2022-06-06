@@ -1,0 +1,31 @@
+[package]
+name = "vdm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+memlib = { git = "https://github.com/rmccrystal/memlib-rs", features = ["kernel"] }
+#memlib = { path = "../../memlib-rs", features = ["kernel"] }
+
+winutil = { path = "../../winutil" }
+log = "0.4.17"
+anyhow = "1.0.57"
+pelite = "0.9.0"
+
+[dependencies.windows]
+version = "0.35.0"
+features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_SystemServices",
+    "Win32_Storage_FileSystem",
+    "Win32_System_SystemServices",
+    "Win32_System_IO",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_System_WindowsProgramming",
+    "Win32_System_Threading",
+    "alloc"
+]
