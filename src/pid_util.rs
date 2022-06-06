@@ -34,21 +34,24 @@ pub trait ProcessAttachInto: Sized {
     fn attach_into_current(self) -> Self::ProcessType;
 }
 
-impl<T> ProcessAttach for T
-    where T: ProcessAttachInto + Clone
+impl<T, P> ProcessAttach for T
+    where T: GetContext<Context=P> + 'static
 {
-    type ProcessType<'a> = <Self as ProcessAttachInto>::ProcessType where Self: 'a;
+    type ProcessType<'a> = AttachedProcess<'a, Self, P> where Self: 'a;
 
     fn attach(&self, process_name: &str) -> Option<Self::ProcessType<'_>> {
-        self.clone().attach_into(process_name)
+        self.get_context_from_name(process_name)
+            .map(|ctx| AttachedProcess::new(self, ctx))
     }
 
     fn attach_pid(&self, pid: u32) -> Option<Self::ProcessType<'_>> {
-        self.clone().attach_into_pid(pid)
+        self.get_context_from_pid(pid)
+            .map(|ctx| AttachedProcess::new(self, ctx))
     }
 
     fn attach_current(&self) -> Self::ProcessType<'_> {
-        self.clone().attach_into_current()
+        let ctx = self.get_current_context();
+        AttachedProcess::new(self, ctx)
     }
 }
 
@@ -83,6 +86,7 @@ pub trait GetContext {
     fn get_current_context(&self) -> Self::Context;
 }
 
+#[derive(Clone)]
 pub enum MaybeOwned<'a, T> {
     Borrowed(&'a T),
     Owned(T),
@@ -100,14 +104,16 @@ impl<'a, T> From<T> for MaybeOwned<'a, T> {
     }
 }
 
-impl<'a, T> MaybeOwned<'a, T> {
-    pub fn as_ref(&self) -> &T {
+impl<'a, T> AsRef<T> for MaybeOwned<'a, T> {
+    fn as_ref(&self) -> &T {
         match self {
             Self::Borrowed(n) => n,
-            Self::Owned(n) => n
+            Self::Owned(n) => n,
         }
     }
+}
 
+impl<'a, T> MaybeOwned<'a, T> {
     pub fn to_owned(self) -> T
         where T: Clone {
         match self {
@@ -117,6 +123,7 @@ impl<'a, T> MaybeOwned<'a, T> {
     }
 }
 
+#[derive(Clone)]
 pub struct AttachedProcess<'a, T, P> {
     pub api: MaybeOwned<'a, T>,
     pub context: P,
