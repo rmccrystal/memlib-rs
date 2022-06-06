@@ -124,17 +124,19 @@ impl<'a, T> MaybeOwned<'a, T> {
 }
 
 #[derive(Clone)]
-pub struct AttachedProcess<'a, T, P> {
+pub struct AttachedProcess<'a, T>
+    where T: GetContext {
     pub api: MaybeOwned<'a, T>,
-    pub context: P,
+    pub context: T::Context,
 }
 
-impl<'a, T, P> AttachedProcess<'a, T, P> {
-    pub fn new_owned(api: T, context: P) -> Self {
+impl<'a, T> AttachedProcess<'a, T>
+    where T: GetContext {
+    pub fn new_owned(api: T, context: T::Context) -> Self {
         Self { api: MaybeOwned::Owned(api), context }
     }
 
-    pub fn new(api: &'a T, context: P) -> Self {
+    pub fn new(api: &'a T, context: T::Context) -> Self {
         Self { api: MaybeOwned::Borrowed(api), context }
     }
 
@@ -145,7 +147,7 @@ impl<'a, T, P> AttachedProcess<'a, T, P> {
         }
     }
 
-    pub fn context(&self) -> &P {
+    pub fn context(&self) -> &T::Context {
         &self.context
     }
 }
@@ -157,9 +159,9 @@ pub trait MemoryReadPid: GetContext {
     fn try_read_bytes_into_pid(&self, ctx: &Self::Context, address: u64, buffer: &mut [u8]) -> Option<()>;
 }
 
-impl<T, P> MemoryRead for AttachedProcess<'_, T, P>
+impl<T> MemoryRead for AttachedProcess<'_, T>
     where
-        T: MemoryReadPid<Context=P>
+        T: MemoryReadPid
 {
     fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
         self.api().try_read_bytes_into_pid(&self.context(), address, buffer)
@@ -173,9 +175,9 @@ pub trait MemoryWritePid: GetContext {
     fn try_write_bytes_pid(&self, ctx: &Self::Context, address: u64, buffer: &[u8]) -> Option<()>;
 }
 
-impl<T, P> MemoryWrite for AttachedProcess<'_, T, P>
+impl<T> MemoryWrite for AttachedProcess<'_, T>
     where
-        T: MemoryWritePid<Context=P>,
+        T: MemoryWritePid,
 {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         self.api().try_write_bytes_pid(&self.context(), address, buffer)
@@ -201,9 +203,9 @@ pub trait ModuleListPid: GetContext {
     fn get_main_module(&self, pid: &Self::Context) -> Module;
 }
 
-impl<T, P> ModuleList for AttachedProcess<'_, T, P>
+impl<T> ModuleList for AttachedProcess<'_, T>
     where
-        T: ModuleListPid<Context=P>,
+        T: ModuleListPid,
 {
     fn get_module_list(&self) -> Vec<Module> {
         self.api().get_module_list(&self.context())
@@ -226,9 +228,9 @@ pub trait ProcessInfoPid: GetContext {
     fn pid(&self, pid: &Self::Context) -> u32;
 }
 
-impl<T, P> ProcessInfo for AttachedProcess<'_, T, P>
+impl<T> ProcessInfo for AttachedProcess<'_, T>
     where
-        T: ProcessInfoPid<Context=P>,
+        T: ProcessInfoPid,
 {
     fn process_name(&self) -> String {
         self.api().process_name(&self.context())
