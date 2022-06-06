@@ -49,11 +49,11 @@ use $crate::tests::process_attach_tests::ProcessAttachTests;
     }
 }
 
+#[cfg(test)]
 pub mod process_attach_tests {
     use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessAttachInto, ProcessInfo};
     use log::LevelFilter;
     use std::process;
-    use std::time::Duration;
 
     struct TestProcess {
         proc: process::Child,
@@ -86,12 +86,12 @@ pub mod process_attach_tests {
             .try_init();
     }
 
-    pub struct ProcessAttachTests<T: ProcessAttach<ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo>> {
+    pub struct ProcessAttachTests<T: ProcessAttachInto<ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo> + Clone> {
         api: T,
         proc: TestProcess,
     }
 
-    impl<T: ProcessAttach<ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo>> ProcessAttachTests<T> {
+    impl<T: ProcessAttachInto<ProcessType: MemoryRead + MemoryWrite + ModuleList + ProcessInfo> + Clone> ProcessAttachTests<T> {
         pub fn new(api: T) -> Self {
             init_tests();
             Self {
