@@ -24,8 +24,10 @@ pub mod tests;
 
 mod memory_protection;
 mod pid_util;
+mod slice_impl;
 
 pub use pid_util::*;
+pub use slice_impl::*;
 
 pub use memory_protection::MemoryProtection;
 
