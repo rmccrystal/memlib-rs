@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::ops::{Deref, DerefMut};
 use super::*;
 
 impl<'a> MemoryRead for &'a [u8] {
@@ -25,18 +26,6 @@ impl MemoryRead for RefCell<[u8]> {
     }
 }
 
-impl<'a> MemoryRead for RefCell<&'a [u8]> {
-    fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
-        if address as usize + buffer.len() > self.borrow().len() {
-            return None;
-        }
-
-        buffer.copy_from_slice(&self.borrow()[address as usize..address as usize + buffer.len()]);
-
-        Some(())
-    }
-}
-
 impl MemoryWrite for RefCell<[u8]> {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         if address as usize + buffer.len() > self.borrow().len() {
@@ -49,7 +38,19 @@ impl MemoryWrite for RefCell<[u8]> {
     }
 }
 
-impl<'a> MemoryWrite for RefCell<&'a mut [u8]> {
+impl<'a, T: Deref<Target=&'a [u8]>> MemoryRead for RefCell<T> {
+    fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
+        if address as usize + buffer.len() > self.borrow().len() {
+            return None;
+        }
+
+        buffer.copy_from_slice(&self.borrow()[address as usize..address as usize + buffer.len()]);
+
+        Some(())
+    }
+}
+
+impl<'a, T: DerefMut<Target=&'a mut [u8]>> MemoryWrite for RefCell<T> {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
         if address as usize + buffer.len() > self.borrow().len() {
             return None;
