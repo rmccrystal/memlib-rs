@@ -50,7 +50,6 @@ pub unsafe fn find_export(api: &impl KernelMemoryRead, module_base: u64, functio
         } else {
             continue;
         };
-        log::trace!("Found export name: {}", export_name);
 
         // Check if the export matches
         //
