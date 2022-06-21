@@ -228,3 +228,29 @@ impl Draw for NullFrame {
 
     fn draw_circle_filled(&mut self, origin: Point, radius: f32, color: Color, options: CircleOptions) {}
 }
+
+pub struct NullOverlay(NullFrame);
+
+impl Default for NullOverlay {
+    fn default() -> Self {
+        Self(NullFrame {})
+    }
+}
+
+impl Render for NullOverlay {
+    type Frame = NullFrame;
+
+    fn add_custom_font(&mut self, font_data: Vec<u8>, font_size: f32, id: FontId) -> Option<()> {
+        Some(())
+    }
+
+    fn frame_size(&self) -> (u32, u32) {
+        (0, 0)
+    }
+
+    fn frame(&mut self) -> &mut Self::Frame {
+        &mut self.0
+    }
+
+    fn render(&mut self) {}
+}
