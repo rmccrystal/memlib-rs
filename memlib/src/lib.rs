@@ -103,20 +103,6 @@ pub trait MemoryRead {
 
         Some(String::from_utf16(&bytes))
     }
-
-    /// Reads bytes from the process in chunks with the specified size
-    fn try_read_bytes_into_chunked(&self, address: u64, buf: &mut [u8], chunk_size: usize) -> Option<()> {
-        for i in (0..buf.len()).into_iter().step_by(chunk_size) {
-            let read_len = if i + chunk_size > buf.len() {
-                buf.len() - i
-            } else {
-                chunk_size
-            };
-            self.try_read_bytes_into(address + i as u64, &mut buf[i..i + read_len])?;
-        }
-
-        Some(())
-    }
 }
 
 /// Extension trait for supplying generic util methods for MemoryRead
@@ -148,6 +134,29 @@ pub trait MemoryReadExt: MemoryRead {
     /// Panics if the address is not valid
     fn read<T: Pod>(&self, address: u64) -> T {
         self.try_read(address).unwrap()
+    }
+
+    /// Reads a const number of bytes from the process returning a stack allocated array.
+    fn try_read_bytes_const<const LEN: usize>(&self, address: u64) -> Option<[u8; LEN]> {
+        let mut buffer: [u8; LEN] = [0u8; LEN];
+        self.try_read_bytes_into(address, &mut buffer)?;
+        Some(buffer)
+    }
+
+    /// Reads bytes from the process in chunks with the specified size
+    fn try_read_bytes_into_chunked<const CHUNK_SIZE: usize>(&self, address: u64, buf: &mut [u8]) -> Option<()> {
+        let mut chunk = [0u8; CHUNK_SIZE];
+        for i in (0..buf.len()).into_iter().step_by(CHUNK_SIZE) {
+            let read_len = if i + CHUNK_SIZE > buf.len() {
+                buf.len() - i
+            } else {
+                CHUNK_SIZE
+            };
+            self.try_read_bytes_into(address + i as u64, &mut chunk[0..read_len])?;
+            buf[i..i + read_len].copy_from_slice(&chunk);
+        }
+
+        Some(())
     }
 }
 
