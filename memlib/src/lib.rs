@@ -153,10 +153,34 @@ pub trait MemoryReadExt: MemoryRead {
                 CHUNK_SIZE
             };
             self.try_read_bytes_into(address + i as u64, &mut chunk[0..read_len])?;
-            buf[i..i + read_len].copy_from_slice(&chunk);
+            buf[i..i + read_len].copy_from_slice(&chunk[0..read_len]);
         }
 
         Some(())
+    }
+
+    /// Reads bytes from the process in chunks with the specified size. The function will return Some(()) unless
+    /// every single chunk fails
+    fn try_read_bytes_into_chunked_fallible<const CHUNK_SIZE: usize>(&self, address: u64, buf: &mut [u8]) -> Option<()> {
+        let mut chunk = [0u8; CHUNK_SIZE];
+        let mut success = false;
+        for i in (0..buf.len()).into_iter().step_by(CHUNK_SIZE) {
+            let read_len = if i + CHUNK_SIZE > buf.len() {
+                buf.len() - i
+            } else {
+                CHUNK_SIZE
+            };
+            if self.try_read_bytes_into(address + i as u64, &mut chunk[0..read_len]).is_some() {
+                success = true;
+                buf[i..i + read_len].copy_from_slice(&chunk[0..read_len]);
+            }
+        }
+
+        if success {
+            Some(())
+        } else {
+            None
+        }
     }
 }
 
