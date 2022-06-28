@@ -103,6 +103,20 @@ pub trait MemoryRead {
 
         Some(String::from_utf16(&bytes))
     }
+
+    /// Reads bytes from the process in chunks with the specified size
+    fn try_read_bytes_into_chunked(&self, address: u64, buf: &mut [u8], chunk_size: usize) -> Option<()> {
+        for i in (0..buf.len()).into_iter().step_by(chunk_size) {
+            let read_len = if i + chunk_size > buf.len() {
+                buf.len() - i
+            } else {
+                chunk_size
+            };
+            self.try_read_bytes_into(address + i as u64, &mut buf[i..i + read_len])?;
+        }
+
+        Some(())
+    }
 }
 
 /// Extension trait for supplying generic util methods for MemoryRead
