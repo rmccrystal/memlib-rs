@@ -1,13 +1,13 @@
 [package]
-name = "memflow-compat"
+name = "memflow-adapter"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-memflow = "0.2.0-beta4"
-memflow-win32 = "0.2.0-beta4"
+memflow = "0.1.5"
+memflow-win32 = "0.1.5"
 anyhow = "1.0.58"
 log = "0.4.17"
 

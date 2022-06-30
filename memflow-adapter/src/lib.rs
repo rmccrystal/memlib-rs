@@ -2,13 +2,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use memflow::prelude::*;
-use memflow::types::cache::TimedCacheValidator;
-use memflow_win32::win32::Win32KernelBuilder;
 use memflow_win32::prelude::*;
 use memlib::*;
 
-type MemflowKernel<T> = Win32Kernel<CachedPhysicalMemory<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>>;
-type MemflowProcess<T> = Win32Process<VirtualDma<CachedPhysicalMemory<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>, Win32VirtualTranslate>>;
+type MemflowKernel<T> = Kernel<CachedMemoryAccess<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>>;
+type MemflowProcess<T> = Win32Process<VirtualDMA<CachedMemoryAccess<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>, Win32VirtualTranslate>>;
 
 pub struct MemflowCompat<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> {
     pub kernel: MemflowKernel<MemflowKernelWrapper<T>>,
@@ -16,8 +14,9 @@ pub struct MemflowCompat<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel:
 
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> MemflowCompat<T> {
     pub fn new(api: T) -> anyhow::Result<Self> {
-        let kernel = Win32KernelBuilder::new(MemflowKernelWrapper(api))
+        let kernel = KernelBuilder::new(MemflowKernelWrapper(api))
             .build_default_caches()
+            .no_symbol_store()
             .build()?;
 
         Ok(Self { kernel })
@@ -28,11 +27,11 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
     type Context = RefCell<MemflowProcess<MemflowKernelWrapper<T>>>;
 
     fn get_context_from_name(&self, process_name: &str) -> Option<Self::Context> {
-        self.kernel.clone().into_process_by_name(process_name).ok().map(RefCell::new)
+        self.kernel.clone().into_process(process_name).ok().map(RefCell::new)
     }
 
     fn get_context_from_pid(&self, pid: u32) -> Option<Self::Context> {
-        self.kernel.clone().into_process_by_pid(pid).ok().map(RefCell::new)
+        self.kernel.clone().into_process_pid(pid).ok().map(RefCell::new)
     }
 
     fn get_current_context(&self) -> Self::Context {
@@ -43,27 +42,27 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> memlib::MemoryReadPid for MemflowCompat<T> {
     fn try_read_bytes_into_pid(&self, ctx: &Self::Context, address: u64, buffer: &mut [u8]) -> Option<()> {
         // TODO: Handle errors
-        ctx.borrow_mut().virt_mem.read_raw_into(address.into(), buffer).ok()
+        ctx.borrow_mut().virt_mem.virt_read_raw_into(address.into(), buffer).ok()
     }
 }
 
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> memlib::MemoryWritePid for MemflowCompat<T> {
     fn try_write_bytes_pid(&self, ctx: &Self::Context, address: u64, buffer: &[u8]) -> Option<()> {
         // TODO: Handle errors
-        ctx.borrow_mut().virt_mem.write_raw(address.into(), buffer).ok()
+        ctx.borrow_mut().virt_mem.virt_write_raw(address.into(), buffer).ok()
     }
 }
 
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> memlib::ModuleListPid for MemflowCompat<T> {
     fn get_module_list(&self, ctx: &Self::Context) -> Vec<Module> {
         ctx.borrow_mut().module_list().unwrap().into_iter()
-            .map(|m| memlib::Module { name: m.name.to_string(), base: m.base.to_umem(), size: m.size })
+            .map(|m| memlib::Module { name: m.name.to_string(), base: m.base.as_u64(), size: m.size as _ })
             .collect()
     }
 
     fn get_main_module(&self, ctx: &Self::Context) -> Module {
-        ctx.borrow_mut().primary_module()
-            .map(|m| memlib::Module { name: m.name.to_string(), base: m.base.to_umem(), size: m.size })
+        ctx.borrow_mut().main_module_info()
+            .map(|m| memlib::Module { name: m.name.to_string(), base: m.base.as_u64(), size: m.size as _ })
             .unwrap()
     }
 }
@@ -85,6 +84,27 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
 #[derive(Clone)]
 pub struct MemflowKernelWrapper<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static>(T);
 
+impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> PhysicalMemory for MemflowKernelWrapper<T> {
+    fn phys_read_raw_list(&mut self, data: &mut [PhysicalReadData]) -> memflow::Result<()> {
+        for PhysicalReadData(addr, out) in data {
+            self.0.physical().try_read_bytes_into_chunked_fallible::<0x1000>(addr.as_u64(), out);
+        }
+        Ok(())
+    }
+
+    fn phys_write_raw_list(&mut self, data: &[PhysicalWriteData]) -> memflow::Result<()> {
+        for PhysicalWriteData(addr, out) in data {
+            self.0.physical().try_write_bytes(addr.as_u64(), out);
+        }
+        Ok(())
+    }
+
+    fn metadata(&self) -> PhysicalMemoryMetadata {
+        PhysicalMemoryMetadata { size: 0xFFFF_FFFF_FFFF_FFFF, readonly: false }
+    }
+}
+
+/*
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> PhysicalMemory for MemflowKernelWrapper<T> {
     fn phys_read_raw_iter(&mut self, data: PhysicalReadMemOps) -> Result<()> {
         unsafe {
@@ -136,3 +156,4 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
         }
     }
 }
+ */

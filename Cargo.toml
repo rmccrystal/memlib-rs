@@ -2,5 +2,5 @@
 members = [
     "memlib",
     "vdm",
-    "memflow-compat"
+    "memflow-adapter"
 ]

@@ -1,5 +1,5 @@
 use libvoyager::Voyager;
-use memflow_compat::MemflowCompat;
+use memflow_adapter::MemflowCompat;
 use memlib::*;
 
 fn main() -> anyhow::Result<()> {
