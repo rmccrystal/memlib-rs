@@ -1,0 +1,25 @@
+[package]
+name = "memflow-compat"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+memflow = "0.2.0-beta4"
+memflow-win32 = "0.2.0-beta4"
+anyhow = "1.0.58"
+log = "0.4.17"
+
+[dependencies.memlib]
+git = 'https://github.com/rmccrystal/memlib-rs'
+#path = "../memlib"
+features = ["kernel"]
+
+[patch.'https://github.com/rmccrystal/memlib-rs']
+memlib = { path = "../memlib", features = ["kernel"] }
+
+[dev-dependencies]
+libvoyager = { path = "../../rgh/voyager-rs/libvoyager" }
+pretty_env_logger = "0.4.0"
+kernel-client = { path = "../../kernel-rs/client" }

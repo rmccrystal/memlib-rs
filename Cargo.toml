@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "memlib",
-    "vdm"
+    "vdm",
+    "memflow-compat"
 ]
