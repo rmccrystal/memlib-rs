@@ -249,7 +249,7 @@ impl<T> ProcessInfo for AttachedProcess<'_, T>
 /// address from a certain Context into a physical address
 #[cfg(feature = "kernel")]
 pub trait TranslatePhysicalPid: GetContext {
-    fn physical_address(&self, ctx: &Self::Context, virtual_address: u64) -> Option<u64>;
+    fn physical_address_pid(&self, ctx: &Self::Context, virtual_address: u64) -> Option<u64>;
 }
 
 #[cfg(feature = "kernel")]
@@ -258,6 +258,6 @@ impl<T> TranslatePhysical for AttachedProcess<'_, T>
         T: TranslatePhysicalPid
 {
     fn physical_address(&self, virtual_address: u64) -> Option<u64> {
-        self.api().physical_address(self.context(), virtual_address)
+        self.api().physical_address_pid(self.context(), virtual_address)
     }
 }
