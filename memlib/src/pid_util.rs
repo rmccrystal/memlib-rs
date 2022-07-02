@@ -164,7 +164,7 @@ impl<T> MemoryRead for AttachedProcess<'_, T>
         T: MemoryReadPid
 {
     fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
-        self.api().try_read_bytes_into_pid(&self.context(), address, buffer)
+        self.api().try_read_bytes_into_pid(self.context(), address, buffer)
     }
 }
 
@@ -180,7 +180,7 @@ impl<T> MemoryWrite for AttachedProcess<'_, T>
         T: MemoryWritePid,
 {
     fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
-        self.api().try_write_bytes_pid(&self.context(), address, buffer)
+        self.api().try_write_bytes_pid(self.context(), address, buffer)
     }
 }
 
@@ -208,15 +208,15 @@ impl<T> ModuleList for AttachedProcess<'_, T>
         T: ModuleListPid,
 {
     fn get_module_list(&self) -> Vec<Module> {
-        self.api().get_module_list(&self.context())
+        self.api().get_module_list(self.context())
     }
 
     fn get_module(&self, name: &str) -> Option<Module> {
-        self.api().get_module(&self.context(), name)
+        self.api().get_module(self.context(), name)
     }
 
     fn get_main_module(&self) -> Module {
-        self.api().get_main_module(&self.context())
+        self.api().get_main_module(self.context())
     }
 }
 
@@ -233,14 +233,31 @@ impl<T> ProcessInfo for AttachedProcess<'_, T>
         T: ProcessInfoPid,
 {
     fn process_name(&self) -> String {
-        self.api().process_name(&self.context())
+        self.api().process_name(self.context())
     }
 
     fn peb_base_address(&self) -> u64 {
-        self.api().peb_base_address(&self.context())
+        self.api().peb_base_address(self.context())
     }
 
     fn pid(&self) -> u32 {
-        self.api().pid(&self.context())
+        self.api().pid(self.context())
+    }
+}
+
+/// A trait that mirrors the TranslatePhysical trait that translates a virtual
+/// address from a certain Context into a physical address
+#[cfg(feature = "kernel")]
+pub trait TranslatePhysicalPid: GetContext {
+    fn physical_address(&self, ctx: &Self::Context, virtual_address: u64) -> Option<u64>;
+}
+
+#[cfg(feature = "kernel")]
+impl<T> TranslatePhysical for AttachedProcess<'_, T>
+    where
+        T: TranslatePhysicalPid
+{
+    fn physical_address(&self, virtual_address: u64) -> Option<u64> {
+        self.api().physical_address(self.context(), virtual_address)
     }
 }

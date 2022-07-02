@@ -9,9 +9,10 @@ fn main() -> anyhow::Result<()> {
 
     let driver = unsafe { DriverHandle::new() }?;
     let mut memflow = MemflowCompat::new(driver)?;
-    let proc = memflow.attach("Notepad.exe").unwrap();
-    let mods = proc.get_module_list();
-    dbg!(&mods);
+    dbg!(memflow.kernel.module_list().unwrap());
+    // let proc = memflow.attach("Notepad.exe").unwrap();
+    // let mods = proc.get_module_list();
+    // dbg!(&mods);
 
     Ok(())
 }

@@ -25,7 +25,30 @@ pub trait PhysicalMemoryRead {
         where Self: Sized {
         PhysicalMemoryReader::new(self)
     }
+
+    /// Returns a type that uses the TranslatePhysical implementation to read virtual addresses using the physical memory reader
+    fn virtual_reader(&self) -> VirtualMemoryReader<Self>
+        where Self: Sized + TranslatePhysical {
+        VirtualMemoryReader::new(self)
+    }
 }
+
+pub struct VirtualMemoryReader<'a, T: PhysicalMemoryRead + TranslatePhysical>(&'a T);
+
+impl<'a, T: PhysicalMemoryRead + TranslatePhysical> VirtualMemoryReader<'a, T> {
+    fn new(api: &'a T) -> Self {
+        Self(api)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead + TranslatePhysical> MemoryRead for VirtualMemoryReader<'a, T> {
+    fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
+        let physical_address = self.0.physical_address(address)?;
+        self.0.try_read_bytes_physical_into(physical_address, buffer)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead + TranslatePhysical> KernelMemoryRead for VirtualMemoryReader<'a, T> {}
 
 pub struct PhysicalMemoryReader<'a, T: PhysicalMemoryRead>(&'a T);
 
@@ -64,6 +87,34 @@ pub trait PhysicalMemoryWrite {
     fn virtual_writer(&self) -> VirtualMemoryWriter<Self>
         where Self: Sized + TranslatePhysical {
         VirtualMemoryWriter::new(self)
+    }
+
+    /// A utility type that transforms Self into a type that reads and writes virtual memory using physical memory and TranslatePhysical
+    fn virtual_memory(&self) -> VirtualMemory<Self>
+        where Self: Sized + TranslatePhysical + PhysicalMemoryRead {
+        VirtualMemory::new(self)
+    }
+}
+
+pub struct VirtualMemory<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite + TranslatePhysical>(&'a T);
+
+impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite + TranslatePhysical> VirtualMemory<'a, T> {
+    pub fn new(api: &'a T) -> Self {
+        Self(api)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite + TranslatePhysical> MemoryRead for VirtualMemory<'a, T> {
+    fn try_read_bytes_into(&self, address: u64, buffer: &mut [u8]) -> Option<()> {
+        let physical_address = self.0.physical_address(address)?;
+        self.0.try_read_bytes_physical_into(physical_address, buffer)
+    }
+}
+
+impl<'a, T: PhysicalMemoryRead + PhysicalMemoryWrite + TranslatePhysical> MemoryWrite for VirtualMemory<'a, T> {
+    fn try_write_bytes(&self, address: u64, buffer: &[u8]) -> Option<()> {
+        let physical_address = self.0.physical_address(address)?;
+        self.0.try_write_bytes_physical(physical_address, buffer)
     }
 }
 

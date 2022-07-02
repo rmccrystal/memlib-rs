@@ -12,6 +12,9 @@ pub use dataview::Pod;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 
+#[cfg(feature = "kernel")]
+pub use kernel::*;
+
 #[cfg(feature = "render")]
 pub mod render;
 

@@ -5,8 +5,8 @@ use memflow::prelude::*;
 use memflow_win32::prelude::*;
 use memlib::*;
 
-type MemflowKernel<T> = Kernel<CachedMemoryAccess<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>>;
-type MemflowProcess<T> = Win32Process<VirtualDMA<CachedMemoryAccess<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>, Win32VirtualTranslate>>;
+type MemflowKernel<T> = Win32Kernel<CachedPhysicalMemory<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>>;
+type MemflowProcess<T> = Win32Process<VirtualDma<CachedPhysicalMemory<'static, T, DefaultCacheValidator>, CachedVirtualTranslate<DirectTranslate, DefaultCacheValidator>, Win32VirtualTranslate>>;
 
 pub struct MemflowCompat<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> {
     pub kernel: MemflowKernel<MemflowKernelWrapper<T>>,
@@ -14,15 +14,24 @@ pub struct MemflowCompat<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel:
 
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> MemflowCompat<T> {
     pub fn new(api: T) -> anyhow::Result<Self> {
-        let kernel = KernelBuilder::new(MemflowKernelWrapper(api))
+        // let dtb = 0x1ae000.into();
+        // let kernel_base = 0xfffff8012f200000u64.into();
+
+        /*
+        let kernel = Win32KernelBuilder::new(MemflowKernelWrapper(api))
             .build_default_caches()
-            .no_symbol_store()
+            .kernel_hint(kernel_base)
+            .dtb(dtb)
+            .arch(ArchitectureIdent::X86(64, false))
             .build()?;
 
         Ok(Self { kernel })
+         */
+        todo!()
     }
 }
 
+/*
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> memlib::GetContext for MemflowCompat<T> {
     type Context = RefCell<MemflowProcess<MemflowKernelWrapper<T>>>;
 
@@ -80,14 +89,17 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
         todo!()
     }
 }
+ */
 
 #[derive(Clone)]
-pub struct MemflowKernelWrapper<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static>(T);
+pub struct MemflowKernelWrapper<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static>(pub T);
 
+/*
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> PhysicalMemory for MemflowKernelWrapper<T> {
     fn phys_read_raw_list(&mut self, data: &mut [PhysicalReadData]) -> memflow::Result<()> {
         for PhysicalReadData(addr, out) in data {
-            self.0.physical().try_read_bytes_into_chunked_fallible::<0x1000>(addr.as_u64(), out);
+            let bytes_read = self.0.physical().try_read_bytes_into_chunked_fallible::<0x1000>(addr.as_u64(), out).unwrap_or(0);
+            // log::info!("{} out of {} bytes read at {:#X}", bytes_read, out.len(), addr.as_u64());
         }
         Ok(())
     }
@@ -103,8 +115,8 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
         PhysicalMemoryMetadata { size: 0xFFFF_FFFF_FFFF_FFFF, readonly: false }
     }
 }
+ */
 
-/*
 impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite + Send + Clone + 'static> PhysicalMemory for MemflowKernelWrapper<T> {
     fn phys_read_raw_iter(&mut self, data: PhysicalReadMemOps) -> Result<()> {
         unsafe {
@@ -112,11 +124,11 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
                 let mut buf = [0u8; 0x1000];
                 for (page_addr, mut out) in CSliceMut::from(out).page_chunks(addr.address(), 0x1000) {
                     let read_len = out.len();
-                    log::trace!("Reading {} bytes of physical memory at {:#X}", read_len, page_addr.to_umem());
+                    // log::trace!("Reading {} bytes of physical memory at {:#X}", read_len, page_addr.to_umem());
                     if self.0.physical().try_read_bytes_into(page_addr.to_umem(), &mut buf[..read_len]).is_none() {
-                        log::warn!("Failed to read {} bytes of physical memory at {:#X}", read_len, page_addr.to_umem());
+                        // log::warn!("Failed to read {} bytes of physical memory at {:#X}", read_len, page_addr.to_umem());
                     };
-                    dbg!(buf[..read_len].iter().filter(|n| **n != 0).count());
+                    // dbg!(buf[..read_len].iter().filter(|n| **n != 0).count());
                     out.copy_from_slice(&buf[..read_len]);
                 }
                 // let out = out.as_slice_mut();
@@ -156,4 +168,3 @@ impl<T: memlib::kernel::PhysicalMemoryRead + memlib::kernel::PhysicalMemoryWrite
         }
     }
 }
- */
