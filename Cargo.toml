@@ -2,5 +2,6 @@
 members = [
     "memlib",
     "vdm",
-    "memflow-adapter"
+    "memflow-adapter",
+    "page-verification-adapter"
 ]
