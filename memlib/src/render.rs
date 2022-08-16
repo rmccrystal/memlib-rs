@@ -21,7 +21,22 @@ pub trait Render {
 
 pub type Point = (f32, f32);
 /// [R, G, B, A]
-pub type Color = [u8; 4];
+#[derive(Copy, Clone, Debug)]
+pub struct Color(pub [u8; 4]);
+
+impl Color {
+    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Color {
+        Color([r, g, b, a])
+    }
+
+    pub fn from_argb(argb: u32) -> Color {
+        let b = argb as u8;
+        let g = (argb >> 8) as u8;
+        let r = (argb >> 16) as u8;
+        let a = (argb >> 24) as u8;
+        Color([r, g, b, a])
+    }
+}
 
 pub type FontId = u32;
 
@@ -76,7 +91,7 @@ pub trait Draw: Sized {
 /// These functions should be used instead of the raw Draw functions
 pub trait DrawExt: Draw {
     fn text<'draw, 's>(&'draw mut self, origin: impl Into<Point>, text: &'s str, color: impl Into<Color>) -> Text<'draw, 's, Self> {
-        Text { draw: self, origin: origin.into(), text, color: color.into(), font: Font::Default, font_size: 10., shadow_color: 0xAA000000, style: TextStyle::Shadow }
+        Text { draw: self, origin: origin.into(), text, color: color.into(), font: Font::Default, font_size: 10., shadow_color: Color::from_argb(0xAA000000), style: TextStyle::Shadow }
     }
 
     fn line(&mut self, p1: impl Into<Point>, p2: impl Into<Point>, color: impl Into<Color>) -> Line<Self> {
