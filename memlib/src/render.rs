@@ -22,7 +22,23 @@ pub trait Render {
 pub type Point = (f32, f32);
 /// [R, G, B, A]
 #[derive(Copy, Clone, Debug)]
-pub struct Color(pub [u8; 4]);
+pub struct Color([u8; 4]);
+
+impl std::ops::Index<usize> for Color {
+    type Output = u8;
+
+    #[inline(always)]
+    fn index(&self, index: usize) -> &u8 {
+        &self.0[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Color {
+    #[inline(always)]
+    fn index_mut(&mut self, index: usize) -> &mut u8 {
+        &mut self.0[index]
+    }
+}
 
 impl Color {
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Color {
