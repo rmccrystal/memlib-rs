@@ -20,7 +20,8 @@ pub trait Render {
 }
 
 pub type Point = (f32, f32);
-pub type Color = u32;
+/// [R, G, B, A]
+pub type Color = [u8; 4];
 
 pub type FontId = u32;
 
