@@ -54,13 +54,13 @@ impl Color {
     }
 }
 
-pub type FontId = u32;
+pub type FontId = String;
 
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub enum Font {
     Default,
     Pixel,
-    Custom(u32),
+    Custom(FontId),
 }
 
 pub struct TextOptions {
