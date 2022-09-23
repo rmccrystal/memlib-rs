@@ -50,7 +50,7 @@ use $crate::tests::process_attach_tests::ProcessAttachTests;
 }
 
 pub mod process_attach_tests {
-    use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttach, ProcessAttachInto, ProcessInfo};
+    use crate::{MemoryRead, MemoryWrite, ModuleList, ProcessAttachInto, ProcessInfo};
     use log::LevelFilter;
     use std::process;
 

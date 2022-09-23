@@ -1,5 +1,4 @@
-use std::cell::{Cell, RefCell};
-use std::ops::{Deref, DerefMut};
+use std::cell::{Cell};
 use super::*;
 
 impl<'a> MemoryRead for &'a [u8] {

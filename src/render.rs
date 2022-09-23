@@ -272,7 +272,7 @@ impl Default for NullOverlay {
 impl Render for NullOverlay {
     type Frame = NullFrame;
 
-    fn add_custom_font(&mut self, font_data: Vec<u8>, font_size: f32, id: FontId) -> Option<()> {
+    fn add_custom_font(&mut self, _font_data: Vec<u8>, _font_size: f32, _id: FontId) -> Option<()> {
         Some(())
     }
 
