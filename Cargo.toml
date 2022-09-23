@@ -2,6 +2,11 @@
 name = "memlib"
 version = "0.1.0"
 edition = "2021"
+authors = ["Ryan McCrystal"]
+readme = "README.md"
+repository = "https://github.com/rmccrystal/memlib-rs"
+license = "MIT"
+description = "An abstraction layer for interacting with memory"
 
 [features]
 kernel = []
