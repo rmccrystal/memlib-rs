@@ -245,6 +245,43 @@ impl<T> ProcessInfo for AttachedProcess<'_, T>
     }
 }
 
+pub trait MemoryAllocatePid: GetContext {
+    /// Allocates size bytes of memory in the process with the specified protection.
+    /// Returns the allocated memory or an error.
+    fn allocate_pid(&self, pid: &Self::Context, size: u64, protection: MemoryProtection) -> Result<u64, MemoryAllocateError>;
+
+    /// Frees allocated memory at the specified address and size.
+    fn free_pid(&self, pid: &Self::Context, base: u64, size: u64) -> Result<(), MemoryAllocateError>;
+}
+
+impl<T> MemoryAllocate for AttachedProcess<'_, T>
+    where
+        T: MemoryAllocatePid,
+{
+    fn allocate(&self, size: u64, protection: MemoryProtection) -> Result<u64, MemoryAllocateError> {
+        self.api().allocate_pid(self.context(), size, protection)
+    }
+
+    fn free(&self, base: u64, size: u64) -> Result<(), MemoryAllocateError> {
+        self.api().free_pid(self.context(), base, size)
+    }
+}
+
+pub trait MemoryProtectPid: GetContext {
+    /// Sets the protection of the memory range to the specified protection.
+    /// Returns the old memory protection or an error
+    fn set_protection_pid(&self, pid: &Self::Context, range: MemoryRange, protection: MemoryProtection) -> Result<MemoryProtection, MemoryProtectError>;
+}
+
+impl<T> MemoryProtect for AttachedProcess<'_, T>
+    where
+        T: MemoryProtectPid,
+{
+    fn set_protection(&self, range: MemoryRange, protection: MemoryProtection) -> Result<MemoryProtection, MemoryProtectError> {
+        self.api().set_protection_pid(self.context(), range, protection)
+    }
+}
+
 /// A trait that mirrors the TranslatePhysical trait that translates a virtual
 /// address from a certain Context into a physical address
 #[cfg(feature = "kernel")]

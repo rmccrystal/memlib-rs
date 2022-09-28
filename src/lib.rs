@@ -286,8 +286,8 @@ pub trait MemoryAllocate {
     /// Returns the allocated memory or an error.
     fn allocate(&self, size: u64, protection: MemoryProtection) -> Result<u64, MemoryAllocateError>;
 
-    /// Frees allocated memory at the specified address.
-    fn free(&self, base: u64) -> Result<(), MemoryAllocateError>;
+    /// Frees allocated memory at the specified address and size.
+    fn free(&self, base: u64, size: u64) -> Result<(), MemoryAllocateError>;
 }
 
 /// Represents a type that can retrieve the corresponding process's name and peb base address
