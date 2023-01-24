@@ -7,6 +7,7 @@ use core::mem::MaybeUninit;
 use std::{mem, slice};
 
 pub use dataview::Pod;
+use dataview::PodMethods;
 
 #[cfg(feature = "kernel")]
 pub mod kernel;
